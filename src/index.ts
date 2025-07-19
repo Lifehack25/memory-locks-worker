@@ -5,10 +5,7 @@ import Hashids from 'hashids';
 // Type definitions for Cloudflare environment
 interface Env {
   DB: D1Database;
-  IMAGES_SIGNING_KEY: string;
-  SIGNING_EXPIRATION_MINUTES: string;
   ADMIN_API_KEY: string;
-  CLOUDFLARE_ACCOUNT_HASH: string;
 }
 
 // Data models matching our C# models
@@ -69,71 +66,7 @@ function decodeHashId(hashId: string): number | null {
   return decoded.length > 0 ? decoded[0] as number : null;
 }
 
-// Generate signed URL for Cloudflare Images with transformation parameters
-async function generateSignedImageUrl(
-  accountHash: string,
-  imageId: string, 
-  variant: string = 'public',
-  signingKey: string, 
-  expirationMinutes: number = 10
-): Promise<string> {
-  try {
-    // Construct the URL with transformation parameters
-    const pathname = `/${accountHash}/${imageId}/${variant}`;
-    const url = new URL(`https://imagedelivery.net${pathname}`);
-    
-    // Add expiration timestamp
-    const expiry = Math.floor(Date.now() / 1000) + (expirationMinutes * 60);
-    url.searchParams.set('exp', expiry.toString());
-    
-    // Create string to sign exactly as documented: pathname + '?' + query string
-    const stringToSign = url.pathname + '?' + url.searchParams.toString();
-    
-    // Import the signing key for HMAC-SHA256
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(signingKey),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    // Generate HMAC-SHA256 signature
-    const mac = await crypto.subtle.sign(
-      'HMAC',
-      key,
-      new TextEncoder().encode(stringToSign)
-    );
-    
-    // Convert signature to hex format
-    const sig = [...new Uint8Array(mac)]
-      .map(x => x.toString(16).padStart(2, '0'))
-      .join('');
-    
-    // Attach signature to URL
-    url.searchParams.set('sig', sig);
-    
-    return url.toString();
-  } catch (error) {
-    console.error('Error generating signed URL:', error);
-    throw error;
-  }
-}
-
-// Get pre-defined variant name for different contexts
-// Note: These variants must be created in Cloudflare Images dashboard
-function getImageVariant(context: string): string {
-  switch (context) {
-    case 'profile':
-      return 'profile'; // 400x300 variant
-    case 'thumbnail':
-      return 'thumbnail'; // 200x200 variant  
-    case 'fullscreen':
-      return 'fullscreen'; // 800x600 variant
-    default:
-      return 'public'; // Default public variant
-  }
-}
+// No longer needed - web album will generate URLs dynamically
 
 // Bot detection function
 function isBot(userAgent: string, referer: string | null): boolean {
@@ -287,53 +220,17 @@ app.get('/api/album/:hashId', async (c) => {
       .bind(lockId)
       .all<MediaObject>();
 
-    // Generate signed URLs for media
-    const signingKey = c.env.IMAGES_SIGNING_KEY;
-    const expirationMinutes = parseInt(c.env.SIGNING_EXPIRATION_MINUTES) || 10;
-    
-    const mediaWithSignedUrls = await Promise.all(
-      (mediaResults.results || []).map(async (media): Promise<EnhancedMediaObject> => {
-        try {
-          // Extract account hash and image ID from Cloudflare Images URL  
-          const imageUrl = media.url || media.Url; // Handle both case variations
-          const urlMatch = imageUrl ? imageUrl.match(/imagedelivery\.net\/([^\/]+)\/([^\/]+)/) : null;
-          if (urlMatch && signingKey) {
-            const [, accountHash, imageId] = urlMatch;
-            
-            // Generate multiple signed URLs for different contexts
-            const urls: { thumbnail?: string; fullscreen?: string; profile?: string } = {};
-            
-            const isProfilePic = media.isprofilepicture || media.IsProfilePicture;
-            
-            // Generate signed URLs for different pre-defined variants
-            // Note: For true private images, variants should be created in dashboard and images uploaded as private
-            if (isProfilePic) {
-              urls.profile = await generateSignedImageUrl(accountHash, imageId, getImageVariant('profile'), signingKey, expirationMinutes);
-              urls.fullscreen = await generateSignedImageUrl(accountHash, imageId, getImageVariant('fullscreen'), signingKey, expirationMinutes);
-            } else {
-              urls.thumbnail = await generateSignedImageUrl(accountHash, imageId, getImageVariant('thumbnail'), signingKey, expirationMinutes);
-              urls.fullscreen = await generateSignedImageUrl(accountHash, imageId, getImageVariant('fullscreen'), signingKey, expirationMinutes);
-            }
-            
-            // Set primary URL based on context
-            const primaryUrl = isProfilePic ? urls.profile : urls.thumbnail;
-            
-            return { ...media, url: primaryUrl, urls };
-          }
-          // Fallback to original URL if signing fails
-          return media;
-        } catch (error) {
-          console.error('Error signing URL for media:', media.id, error);
-          return media;
-        }
-      })
-    );
+    // Return raw media data - web album will generate URLs dynamically
+    const mediaWithVariantUrls = (mediaResults.results || []).map((media): EnhancedMediaObject => {
+      // Just return the original media object without URL modifications
+      return media;
+    });
 
     const response: AlbumResponse = {
       lockName: lockResult.lockname || 'Memory Lock',
       albumTitle: lockResult.albumtitle || 'Wonderful Memories',
       sealDate: lockResult.sealdate || undefined,
-      media: mediaWithSignedUrls
+      media: mediaWithVariantUrls
     };
 
     return c.json(response);
@@ -507,7 +404,13 @@ app.patch('/api/locks/:id/owner', async (c) => {
 
 // Health check endpoint
 app.get('/health', (c) => {
-  return c.json({ status: 'OK', timestamp: new Date().toISOString() });
+  return c.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    env: {
+      hasAdminKey: !!c.env.ADMIN_API_KEY
+    }
+  });
 });
 
 // Root endpoint
