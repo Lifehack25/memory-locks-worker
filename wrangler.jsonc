@@ -16,7 +16,10 @@
 			"database_name": "ml-sqlite",
 			"database_id": "202c8ac8-df8c-4589-94bd-ed1394b7197f"
 		}
-	]
+	],
+	"vars": {
+		"SIGNING_EXPIRATION_MINUTES": "10"
+	}
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

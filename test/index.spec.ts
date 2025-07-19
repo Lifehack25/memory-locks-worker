@@ -6,19 +6,33 @@ import worker from '../src/index';
 // `Request` to pass to `worker.fetch()`.
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
-describe('Hello World worker', () => {
-	it('responds with Hello World! (unit style)', async () => {
+describe('Memory Locks Worker', () => {
+	it('responds with API documentation (unit style)', async () => {
 		const request = new IncomingRequest('http://example.com');
 		// Create an empty context to pass to `worker.fetch()`.
 		const ctx = createExecutionContext();
 		const response = await worker.fetch(request, env, ctx);
 		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
 		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+		const responseData = await response.json();
+		expect(responseData.message).toBe('Memory Locks Worker API');
+		expect(responseData.endpoints.generateLocks).toBe('POST /api/locks/generate/{count} (requires X-API-Key header)');
 	});
 
-	it('responds with Hello World! (integration style)', async () => {
+	it('responds with API documentation (integration style)', async () => {
 		const response = await SELF.fetch('https://example.com');
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
+		const responseData = await response.json();
+		expect(responseData.message).toBe('Memory Locks Worker API');
+		expect(responseData.endpoints.generateLocks).toBe('POST /api/locks/generate/{count} (requires X-API-Key header)');
+	});
+
+	it('rejects lock creation without API key', async () => {
+		const request = new IncomingRequest('http://example.com/api/locks/generate/5', { method: 'POST' });
+		const ctx = createExecutionContext();
+		const response = await worker.fetch(request, env, ctx);
+		await waitOnExecutionContext(ctx);
+		expect(response.status).toBe(401);
+		const responseData = await response.json();
+		expect(responseData.error).toBe('Unauthorized: Invalid API key');
 	});
 });
