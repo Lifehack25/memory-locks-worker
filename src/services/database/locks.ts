@@ -48,7 +48,16 @@ export class LocksService {
   async getLockById(lockId: number): Promise<Lock | null> {
     try {
       const lock = await this.db.prepare(`
-        SELECT * FROM Locks WHERE Id = ? LIMIT 1
+        SELECT 
+          id as Id,
+          lockname as LockName,
+          albumtitle as AlbumTitle,
+          sealdate as SealDate,
+          notifiedwhenscanned as NotifiedWhenScanned,
+          scancount as ScanCount,
+          createdat as CreatedAt,
+          user_id
+        FROM locks WHERE id = ? LIMIT 1
       `).bind(lockId).first() as Lock | null;
       
       return lock;
@@ -241,7 +250,16 @@ export class LocksService {
   async getMediaObjectsByLockId(lockId: number): Promise<MediaObject[]> {
     try {
       const mediaResult = await this.db.prepare(`
-        SELECT * FROM MediaObjects WHERE LockId = ? ORDER BY CreatedAt
+        SELECT 
+          id as Id,
+          lockid as LockId,
+          cloudflareimageid as CloudflareImageId,
+          url as Url,
+          filename as FileName,
+          mediatype as MediaType,
+          isprofilepicture as IsProfilePicture,
+          createdat as CreatedAt
+        FROM mediaobjects WHERE lockid = ? ORDER BY createdat
       `).bind(lockId).all() as { results: MediaObject[] };
 
       return mediaResult.results || [];
