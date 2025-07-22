@@ -76,12 +76,12 @@ export class LocksService {
       // Get media objects for the lock
       const mediaObjects = await this.getMediaObjectsByLockId(lockId);
       
-      // Enhance media objects with Cloudflare URLs
+      // Enhance media objects with custom domain URLs
       const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => ({
         ...media,
         urls: {
-          thumbnail: `https://imagedelivery.net/${accountHash}/${media.CloudflareImageId}/thumbnail`,
-          profile: `https://imagedelivery.net/${accountHash}/${media.CloudflareImageId}/profile`
+          thumbnail: `https://media.memorylocks.com/${media.CloudflareImageId}/thumbnail`,
+          profile: `https://media.memorylocks.com/${media.CloudflareImageId}/profile`
         }
       }));
 
