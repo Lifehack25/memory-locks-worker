@@ -23,8 +23,7 @@ export interface MediaObject {
 
 export interface EnhancedMediaObject extends MediaObject {
   urls?: {
-    thumbnail?: string;
-    profile?: string;
+    public?: string;
   };
 }
 
