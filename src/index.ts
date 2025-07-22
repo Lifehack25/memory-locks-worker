@@ -73,15 +73,16 @@ app.get('/album/:hashId',
       'upgrade-insecure-requests': c.req.header('Upgrade-Insecure-Requests'),
     };
 
-    if (BotProtectionService.isBot(userAgent, referer, requestHeaders)) {
-      Logger.warn('Bot detected attempting album access', { 
-        ip: clientIP, 
-        userAgent, 
-        hashId,
-        headers: requestHeaders
-      });
-      throw new UnauthorizedError('Access denied');
-    }
+    // Temporarily disabled for debugging
+    // if (BotProtectionService.isBot(userAgent, referer, requestHeaders)) {
+    //   Logger.warn('Bot detected attempting album access', { 
+    //     ip: clientIP, 
+    //     userAgent, 
+    //     hashId,
+    //     headers: requestHeaders
+    //   });
+    //   throw new UnauthorizedError('Access denied');
+    // }
 
     // Rate limiting for album access
     if (RateLimitService.isAlbumRateLimited(clientIP)) {
