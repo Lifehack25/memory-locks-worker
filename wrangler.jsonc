@@ -1,6 +1,9 @@
 /**
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
+ * 
+ * NOTE: This configuration is for PRODUCTION deployment only.
+ * Local development has been disabled to avoid database confusion.
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
