@@ -114,7 +114,7 @@ app.get('/album/:hashId',
       ip: clientIP 
     });
 
-    return c.json(ErrorHandler.success(albumData));
+    return c.json(albumData);
   }
 );
 
