@@ -24,8 +24,15 @@ export const CreateUserSchema = z.object({
   name: OptionalStringSchema.refine(val => !val || val.length <= 100, 'Name too long'),
   email_verified: z.boolean().default(false),
   phone_verified: z.boolean().default(false),
-}).refine(data => data.email || data.phone_number, {
-  message: 'Either email or phone_number must be provided',
+}).refine(data => {
+  // For Apple/Google users, provider_id is sufficient
+  if (data.auth_provider === 'apple' || data.auth_provider === 'google') {
+    return !!data.provider_id && data.provider_id.length > 0;
+  }
+  // For email/phone users, require email or phone_number
+  return !!(data.email && data.email.length > 0) || !!(data.phone_number && data.phone_number.length > 0);
+}, {
+  message: 'Either email, phone_number, or provider_id (for social auth) must be provided',
 });
 
 // Lock-related schemas

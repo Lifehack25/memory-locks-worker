@@ -14,15 +14,27 @@ export class ValidationMiddleware {
   // Validate request body
   static validateBody<T extends z.ZodSchema>(schema: T) {
     return async (c: any, next: () => Promise<void>) => {
+      let body: any;
       try {
-        const body = await c.req.json();
+        body = await c.req.json();
+        
+        // DEBUG: Log the incoming request body for Apple user creation
+        console.log('🔍 VALIDATION DEBUG - Incoming request body:', JSON.stringify(body, null, 2));
+        
         const validatedData = schema.parse(body);
+        
+        // DEBUG: Log successful validation
+        console.log('✅ VALIDATION DEBUG - Successfully validated:', JSON.stringify(validatedData, null, 2));
         
         // Store validated data in context for use in handlers
         c.set('validatedBody', validatedData);
         await next();
       } catch (error) {
         if (error instanceof ZodError) {
+          // DEBUG: Log detailed validation errors
+          console.log('❌ VALIDATION DEBUG - Validation failed:', JSON.stringify((error as any).errors, null, 2));
+          console.log('❌ VALIDATION DEBUG - Original body:', JSON.stringify(body, null, 2));
+          
           return c.json({
             error: 'Validation failed',
             success: false,
