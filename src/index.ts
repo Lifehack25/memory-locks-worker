@@ -346,6 +346,75 @@ app.use('/api/*', async (c, next) => {
   await next();
 });
 
+// Data API endpoints (for main API integration)
+app.use('/api/data/*', AuthMiddleware.requireApiKey());
+
+app.get('/api/data/users/by-identifier/:identifier', async (c) => {
+  const identifier = c.req.param('identifier');
+  if (!identifier) {
+    throw new Error('Identifier parameter is required');
+  }
+  
+  const userService = new UserService(c.env.DB);
+  const user = await userService.getUserByIdentifier(decodeURIComponent(identifier));
+  
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+  
+  Logger.info('User lookup successful', { identifier });
+  return c.json(user);
+});
+
+app.get('/api/data/users/:userId', async (c) => {
+  const userId = parseInt(c.req.param('userId') || '0');
+  if (!userId) {
+    throw new Error('Invalid user ID');
+  }
+  
+  const userService = new UserService(c.env.DB);
+  const user = await userService.getUserById(userId);
+  
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+  
+  return c.json(user);
+});
+
+app.post('/api/data/users', 
+  ValidationMiddleware.validateBody(CreateUserSchema),
+  async (c) => {
+    const userData = ValidationMiddleware.getValidatedBody<CreateUserRequest>(c);
+    const userService = new UserService(c.env.DB);
+    
+    const user = await userService.createUser(userData);
+    if (!user) {
+      throw new DatabaseError('Failed to create user');
+    }
+
+    Logger.info('User created via API', { userId: user.id });
+    return c.json(user, 201);
+  }
+);
+
+app.patch('/api/data/users/:userId/last-login', async (c) => {
+  const userId = parseInt(c.req.param('userId') || '0');
+  if (!userId) {
+    throw new Error('Invalid user ID');
+  }
+  
+  const userService = new UserService(c.env.DB);
+  const success = await userService.updateUserLoginTime(userId);
+  
+  if (!success) {
+    throw new DatabaseError('Failed to update login time');
+  }
+  
+  Logger.info('User login time updated', { userId });
+  return c.json({ success: true });
+});
+
 // Authentication routes
 app.post('/api/auth/request-code',
   ValidationMiddleware.validateBody(AuthRequestSchema),
