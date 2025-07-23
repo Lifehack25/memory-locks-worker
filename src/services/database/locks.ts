@@ -82,17 +82,17 @@ export class LocksService {
       // Enhance media objects with custom domain URLs
       const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => {
         const isProfilePic = Boolean(media.IsProfilePicture);
-        const url = isProfilePic
-          ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
-          : `https://media.memorylocks.com/${media.CloudflareImageId}/public`;
         
         // DEBUG: Log each media object processing
-        console.log(`🔍 DEBUG - Media ${media.Id}: IsProfilePicture=${media.IsProfilePicture}, Boolean(IsProfilePicture)=${isProfilePic}, URL=${url}`);
+        console.log(`🔍 DEBUG - Media ${media.Id}: IsProfilePicture=${media.IsProfilePicture}, Boolean(IsProfilePicture)=${isProfilePic}`);
         
         return {
           ...media,
           urls: {
-            public: url
+            public: `https://media.memorylocks.com/${media.CloudflareImageId}/public`,
+            profile: isProfilePic 
+              ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
+              : `https://media.memorylocks.com/${media.CloudflareImageId}/public`
           }
         };
       });

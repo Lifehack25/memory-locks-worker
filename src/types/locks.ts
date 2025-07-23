@@ -24,6 +24,7 @@ export interface MediaObject {
 export interface EnhancedMediaObject extends MediaObject {
   urls?: {
     public?: string;
+    profile?: string;
   };
 }
 
