@@ -22,7 +22,6 @@ export const CreateUserSchema = z.object({
   auth_provider: z.enum(['email', 'phone', 'google', 'apple']).default('email'),
   provider_id: OptionalStringSchema,
   name: OptionalStringSchema.refine(val => !val || val.length <= 100, 'Name too long'),
-  profile_picture_url: z.string().url().optional().or(z.literal('')),
   email_verified: z.boolean().default(false),
   phone_verified: z.boolean().default(false),
 }).refine(data => data.email || data.phone_number, {

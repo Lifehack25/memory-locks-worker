@@ -6,7 +6,6 @@ export interface User {
   auth_provider: 'email' | 'phone' | 'google' | 'apple';
   provider_id?: string;
   name?: string;
-  profile_picture_url?: string;
   email_verified: boolean;
   phone_verified: boolean;
   created_at: string;
@@ -60,7 +59,6 @@ export interface AuthResponse {
     id: number;
     email?: string;
     name?: string;
-    profile_picture_url?: string;
   };
 }
 
@@ -71,7 +69,6 @@ export interface CreateUserRequest {
   auth_provider: 'email' | 'phone' | 'google' | 'apple';
   provider_id?: string;
   name?: string;
-  profile_picture_url?: string;
   email_verified?: boolean;
   phone_verified?: boolean;
 }

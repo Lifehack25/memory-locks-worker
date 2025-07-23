@@ -9,15 +9,14 @@ export class UserService {
       const insertResult = await this.db.prepare(`
         INSERT INTO users (
           email, phone_number, auth_provider, provider_id, name, 
-          profile_picture_url, email_verified, phone_verified
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          email_verified, phone_verified
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userData.email || null,
         userData.phone_number || null,
         userData.auth_provider || 'email',
         userData.provider_id || null,
         userData.name || null,
-        userData.profile_picture_url || null,
         userData.email_verified ? 1 : 0,
         userData.phone_verified ? 1 : 0
       ).run();
@@ -30,7 +29,6 @@ export class UserService {
           auth_provider: userData.auth_provider || 'email',
           provider_id: userData.provider_id,
           name: userData.name,
-          profile_picture_url: userData.profile_picture_url,
           email_verified: userData.email_verified || false,
           phone_verified: userData.phone_verified || false,
           created_at: new Date().toISOString(),
@@ -144,5 +142,18 @@ export class UserService {
 
   async getUserStatistics(): Promise<any> {
     return this.getUserStats();
+  }
+
+  async getUserByProvider(provider: string, providerId: string): Promise<User | null> {
+    try {
+      const user = await this.db.prepare(`
+        SELECT * FROM users WHERE auth_provider = ? AND provider_id = ? LIMIT 1
+      `).bind(provider, providerId).first() as User | null;
+      
+      return user;
+    } catch (error) {
+      console.error('Error getting user by provider:', error);
+      throw new Error('Failed to retrieve user by provider');
+    }
   }
 }

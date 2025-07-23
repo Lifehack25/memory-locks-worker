@@ -28,6 +28,7 @@ import {
   UserIdParamSchema,
   CountParamSchema,
   PaginationSchema,
+  ProviderParamSchema,
 } from './validation/schemas';
 
 // Initialize Hono app
@@ -382,6 +383,23 @@ app.get('/api/data/users/:userId', async (c) => {
   return c.json(user);
 });
 
+app.get('/api/data/users/provider/:provider/:providerId',
+  ValidationMiddleware.validateParams(ProviderParamSchema),
+  async (c) => {
+    const { provider, providerId } = ValidationMiddleware.getValidatedParams<{ provider: string; providerId: string }>(c);
+    
+    const userService = new UserService(c.env.DB);
+    const user = await userService.getUserByProvider(provider, decodeURIComponent(providerId));
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    Logger.info('User lookup by provider successful', { provider, providerId });
+    return c.json(user);
+  }
+);
+
 app.post('/api/data/users', 
   ValidationMiddleware.validateBody(CreateUserSchema),
   async (c) => {
@@ -414,6 +432,23 @@ app.patch('/api/data/users/:userId/last-login', async (c) => {
   Logger.info('User login time updated', { userId });
   return c.json({ success: true });
 });
+
+app.delete('/api/data/users/provider/:provider/:providerId',
+  ValidationMiddleware.validateParams(ProviderParamSchema),
+  async (c) => {
+    const { provider, providerId } = ValidationMiddleware.getValidatedParams<{ provider: string; providerId: string }>(c);
+    
+    const userService = new UserService(c.env.DB);
+    const success = await userService.deleteUserByProvider(provider, decodeURIComponent(providerId));
+    
+    if (!success) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    Logger.info('User deleted by provider', { provider, providerId });
+    return c.json({ success: true });
+  }
+);
 
 // Authentication routes
 app.post('/api/auth/request-code',
