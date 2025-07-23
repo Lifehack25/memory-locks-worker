@@ -76,15 +76,26 @@ export class LocksService {
       // Get media objects for the lock
       const mediaObjects = await this.getMediaObjectsByLockId(lockId);
       
+      // DEBUG: Log media objects to understand structure
+      console.log('🔍 DEBUG - MediaObjects for lockId', lockId, ':', JSON.stringify(mediaObjects, null, 2));
+      
       // Enhance media objects with custom domain URLs
-      const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => ({
-        ...media,
-        urls: {
-          public: Boolean(media.IsProfilePicture)
-            ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
-            : `https://media.memorylocks.com/${media.CloudflareImageId}/public`
-        }
-      }));
+      const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => {
+        const isProfilePic = Boolean(media.IsProfilePicture);
+        const url = isProfilePic
+          ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
+          : `https://media.memorylocks.com/${media.CloudflareImageId}/public`;
+        
+        // DEBUG: Log each media object processing
+        console.log(`🔍 DEBUG - Media ${media.Id}: IsProfilePicture=${media.IsProfilePicture}, Boolean(IsProfilePicture)=${isProfilePic}, URL=${url}`);
+        
+        return {
+          ...media,
+          urls: {
+            public: url
+          }
+        };
+      });
 
       return {
         lockName: lock.LockName || 'Untitled Lock',
@@ -262,6 +273,9 @@ export class LocksService {
           createdat as CreatedAt
         FROM mediaobjects WHERE lockid = ? ORDER BY createdat
       `).bind(lockId).all() as { results: MediaObject[] };
+
+      // DEBUG: Log raw database results
+      console.log('🔍 DEBUG - Raw DB results for lockId', lockId, ':', JSON.stringify(mediaResult.results, null, 2));
 
       return mediaResult.results || [];
     } catch (error) {
