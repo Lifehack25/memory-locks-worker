@@ -80,7 +80,9 @@ export class LocksService {
       const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => ({
         ...media,
         urls: {
-          public: `https://media.memorylocks.com/${media.CloudflareImageId}/public`
+          public: Boolean(media.IsProfilePicture)
+            ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
+            : `https://media.memorylocks.com/${media.CloudflareImageId}/public`
         }
       }));
 
