@@ -72,6 +72,11 @@ export const UpdateNotificationsSchema = z.object({
   notifiedWhenScanned: z.boolean(),
 });
 
+// Lock claiming schema (for mobile API)
+export const ClaimLockSchema = z.object({
+  userId: UserIdSchema,
+});
+
 // Authentication schemas
 export const AuthRequestSchema = z.object({
   identifier: z.string().trim().min(1).max(255),
@@ -202,5 +207,6 @@ export type BulkLockGenerationRequest = z.infer<typeof BulkLockGenerationSchema>
 export type AuthRequest = z.infer<typeof AuthRequestSchema>;
 export type VerifyCodeRequest = z.infer<typeof VerifyCodeSchema>;
 export type SocialAuthRequest = z.infer<typeof SocialAuthSchema>;
+export type ClaimLockRequest = z.infer<typeof ClaimLockSchema>;
 export type ApiResponse = z.infer<typeof ApiResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;

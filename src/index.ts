@@ -23,6 +23,7 @@ import {
   AuthRequestSchema,
   VerifyCodeSchema,
   SocialAuthSchema,
+  ClaimLockSchema,
   HashIdParamSchema,
   LockIdParamSchema,
   UserIdParamSchema,
@@ -487,6 +488,69 @@ app.post('/api/auth/social',
     Logger.info('Social authentication attempted', { provider });
     
     return c.json(ErrorHandler.success({ accessToken: 'mock-token' }, 'Authentication successful'));
+  }
+);
+
+// Mobile API endpoints (lock management)
+app.post('/api/locks/:hashId/claim',
+  ValidationMiddleware.validate(ClaimLockSchema, HashIdParamSchema),
+  async (c) => {
+    const { hashId } = ValidationMiddleware.getValidatedParams<{ hashId: string }>(c);
+    const { userId } = ValidationMiddleware.getValidatedBody<{ userId: number }>(c);
+    
+    // Decode hashId to get lock ID
+    const hashidsService = new HashidsService();
+    const lockId = hashidsService.decode(hashId);
+    
+    if (!lockId) {
+      throw new NotFoundError('Lock');
+    }
+    
+    const locksService = new LocksService(c.env.DB);
+    const userService = new UserService(c.env.DB);
+    
+    // Check if lock exists
+    const albumData = await locksService.getAlbumData(lockId, c.env.CLOUDFLARE_ACCOUNT_HASH);
+    if (!albumData) {
+      throw new NotFoundError('Lock');
+    }
+    
+    // Check if lock is already claimed
+    const lockDetails = await locksService.getLockById(lockId);
+    if (lockDetails?.UserId) {
+      return c.json({
+        error: 'Lock is already claimed by another user',
+        success: false
+      }, 409);
+    }
+    
+    // Check if user exists
+    const user = await userService.getUserById(userId);
+    if (!user) {
+      throw new NotFoundError('User');
+    }
+    
+    // Claim the lock for the user
+    const success = await locksService.updateLockOwner(lockId, userId);
+    if (!success) {
+      throw new DatabaseError('Failed to claim lock');
+    }
+    
+    Logger.info('Lock claimed successfully', { 
+      lockId, 
+      hashId, 
+      userId, 
+      userEmail: user.email || user.PhoneNumber,
+      ip: c.req.header('CF-Connecting-IP') || 'unknown'
+    });
+    
+    return c.json(ErrorHandler.success({
+      lockId,
+      hashId,
+      lockName: albumData.lockName,
+      albumTitle: albumData.albumTitle,
+      claimedAt: new Date().toISOString()
+    }, 'Lock claimed successfully'));
   }
 );
 
