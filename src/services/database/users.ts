@@ -8,31 +8,31 @@ export class UserService {
     try {
       const insertResult = await this.db.prepare(`
         INSERT INTO users (
-          email, phone_number, auth_provider, provider_id, name, 
-          email_verified, phone_verified
+          email, PhoneNumber, AuthProvider, ProviderId, name, 
+          EmailVerified, PhoneVerified
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userData.email || null,
-        userData.phone_number || null,
-        userData.auth_provider || 'email',
-        userData.provider_id || null,
+        userData.PhoneNumber || null,
+        userData.AuthProvider || 'email',
+        userData.ProviderId || null,
         userData.name || null,
-        userData.email_verified ? 1 : 0,
-        userData.phone_verified ? 1 : 0
+        userData.EmailVerified ? 1 : 0,
+        userData.PhoneVerified ? 1 : 0
       ).run();
 
       if (insertResult.success && (insertResult as any).meta?.last_row_id) {
         return {
           id: (insertResult as any).meta.last_row_id as number,
           email: userData.email,
-          phone_number: userData.phone_number,
-          auth_provider: userData.auth_provider || 'email',
-          provider_id: userData.provider_id,
+          PhoneNumber: userData.PhoneNumber,
+          AuthProvider: userData.AuthProvider || 'email',
+          ProviderId: userData.ProviderId,
           name: userData.name,
-          email_verified: userData.email_verified || false,
-          phone_verified: userData.phone_verified || false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          EmailVerified: userData.EmailVerified || false,
+          PhoneVerified: userData.PhoneVerified || false,
+          CreatedAt: new Date().toISOString(),
+          UpdatedAt: new Date().toISOString()
         };
       }
       return null;
@@ -45,7 +45,7 @@ export class UserService {
   async getUserByIdentifier(identifier: string): Promise<User | null> {
     try {
       const user = await this.db.prepare(`
-        SELECT * FROM users WHERE email = ? OR phone_number = ? LIMIT 1
+        SELECT * FROM users WHERE email = ? OR PhoneNumber = ? LIMIT 1
       `).bind(identifier, identifier).first() as User | null;
       
       return user;
@@ -71,7 +71,7 @@ export class UserService {
   async updateUserLoginTime(userId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE users SET last_login_at = datetime('now'), updated_at = datetime('now') 
+        UPDATE users SET LastLoginAt = datetime('now'), UpdatedAt = datetime('now') 
         WHERE id = ?
       `).bind(userId).run();
 
@@ -86,7 +86,7 @@ export class UserService {
     try {
       // First get the user to check if they exist
       const user = await this.db.prepare(`
-        SELECT id FROM users WHERE auth_provider = ? AND provider_id = ? LIMIT 1
+        SELECT id FROM users WHERE AuthProvider = ? AND ProviderId = ? LIMIT 1
       `).bind(provider, providerId).first() as { id: number } | null;
 
       if (!user) {
@@ -95,7 +95,7 @@ export class UserService {
 
       // Delete user (cascade should handle related data)
       const result = await this.db.prepare(`
-        DELETE FROM users WHERE auth_provider = ? AND provider_id = ?
+        DELETE FROM users WHERE AuthProvider = ? AND ProviderId = ?
       `).bind(provider, providerId).run();
 
       return result.success;
@@ -112,7 +112,7 @@ export class UserService {
       `).first() as { count: number } | null;
 
       const verifiedResult = await this.db.prepare(`
-        SELECT COUNT(*) as count FROM users WHERE email_verified = 1 OR phone_verified = 1
+        SELECT COUNT(*) as count FROM users WHERE EmailVerified = 1 OR PhoneVerified = 1
       `).first() as { count: number } | null;
 
       return {
@@ -130,7 +130,7 @@ export class UserService {
     try {
       const offset = (page - 1) * limit;
       const result = await this.db.prepare(`
-        SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?
+        SELECT * FROM users ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
       `).bind(limit, offset).all() as { results: User[] };
 
       return result.results || [];
@@ -147,7 +147,7 @@ export class UserService {
   async getUserByProvider(provider: string, providerId: string): Promise<User | null> {
     try {
       const user = await this.db.prepare(`
-        SELECT * FROM users WHERE auth_provider = ? AND provider_id = ? LIMIT 1
+        SELECT * FROM users WHERE AuthProvider = ? AND ProviderId = ? LIMIT 1
       `).bind(provider, providerId).first() as User | null;
       
       return user;

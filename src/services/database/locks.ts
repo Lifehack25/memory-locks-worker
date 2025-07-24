@@ -50,13 +50,13 @@ export class LocksService {
       const lock = await this.db.prepare(`
         SELECT 
           id as Id,
-          lockname as LockName,
-          albumtitle as AlbumTitle,
-          sealdate as SealDate,
-          notifiedwhenscanned as NotifiedWhenScanned,
-          scancount as ScanCount,
-          createdat as CreatedAt,
-          user_id
+          LockName,
+          AlbumTitle,
+          SealDate,
+          NotifiedWhenScanned,
+          ScanCount,
+          CreatedAt,
+          UserId
         FROM locks WHERE id = ? LIMIT 1
       `).bind(lockId).first() as Lock | null;
       
@@ -81,16 +81,16 @@ export class LocksService {
       
       // Enhance media objects with custom domain URLs
       const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => {
-        const isProfilePic = Boolean(media.IsProfilePicture);
+        const isMainPic = Boolean(media.IsMainPicture);
         
         // DEBUG: Log each media object processing
-        console.log(`🔍 DEBUG - Media ${media.Id}: IsProfilePicture=${media.IsProfilePicture}, Boolean(IsProfilePicture)=${isProfilePic}`);
+        console.log(`🔍 DEBUG - Media ${media.Id}: IsMainPicture=${media.IsMainPicture}, Boolean(IsMainPicture)=${isMainPic}`);
         
         return {
           ...media,
           urls: {
             public: `https://media.memorylocks.com/${media.CloudflareImageId}/public`,
-            profile: isProfilePic 
+            profile: isMainPic 
               ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
               : `https://media.memorylocks.com/${media.CloudflareImageId}/public`
           }
@@ -113,7 +113,7 @@ export class LocksService {
     try {
       // Get all locks for the user
       const locks = await this.db.prepare(`
-        SELECT * FROM Locks WHERE user_id = ? ORDER BY CreatedAt DESC
+        SELECT * FROM Locks WHERE UserId = ? ORDER BY CreatedAt DESC
       `).bind(userId).all() as { results: Lock[] };
 
       if (!locks.results.length) {
@@ -220,7 +220,7 @@ export class LocksService {
   async updateLockOwner(lockId: number, userId: number | null): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET user_id = ? WHERE Id = ?
+        UPDATE Locks SET UserId = ? WHERE Id = ?
       `).bind(userId, lockId).run();
 
       return result.success;
@@ -234,7 +234,7 @@ export class LocksService {
     try {
       // First get the locks that will be affected
       const locksResult = await this.db.prepare(`
-        SELECT Id, LockName, AlbumTitle FROM Locks WHERE user_id = ?
+        SELECT Id, LockName, AlbumTitle FROM Locks WHERE UserId = ?
       `).bind(userId).all() as { results: Array<{ Id: number; LockName?: string; AlbumTitle?: string }> };
 
       const affectedLocks = locksResult.results.map(lock => ({
@@ -245,7 +245,7 @@ export class LocksService {
 
       // Clear user association from all their locks
       const updateResult = await this.db.prepare(`
-        UPDATE Locks SET user_id = NULL WHERE user_id = ?
+        UPDATE Locks SET UserId = NULL WHERE UserId = ?
       `).bind(userId).run();
 
       return {
@@ -264,14 +264,14 @@ export class LocksService {
       const mediaResult = await this.db.prepare(`
         SELECT 
           id as Id,
-          lockid as LockId,
-          cloudflareimageid as CloudflareImageId,
-          url as Url,
-          filename as FileName,
-          mediatype as MediaType,
-          isprofilepicture as IsProfilePicture,
-          createdat as CreatedAt
-        FROM mediaobjects WHERE lockid = ? ORDER BY createdat
+          LockId,
+          CloudflareImageId,
+          Url,
+          FileName,
+          MediaType,
+          IsMainPicture,
+          CreatedAt
+        FROM mediaobjects WHERE LockId = ? ORDER BY CreatedAt
       `).bind(lockId).all() as { results: MediaObject[] };
 
       // DEBUG: Log raw database results
@@ -295,7 +295,7 @@ export class LocksService {
       const [totalResult, sealedResult, withUsersResult, withMediaResult] = await Promise.all([
         this.db.prepare(`SELECT COUNT(*) as count FROM Locks`).first(),
         this.db.prepare(`SELECT COUNT(*) as count FROM Locks WHERE SealDate IS NOT NULL`).first(),
-        this.db.prepare(`SELECT COUNT(*) as count FROM Locks WHERE user_id IS NOT NULL`).first(),
+        this.db.prepare(`SELECT COUNT(*) as count FROM Locks WHERE UserId IS NOT NULL`).first(),
         this.db.prepare(`SELECT COUNT(DISTINCT LockId) as count FROM MediaObjects`).first()
       ]);
 
@@ -378,7 +378,7 @@ export class LocksService {
     try {
       const offset = (page - 1) * limit;
       const result = await this.db.prepare(`
-        SELECT * FROM Locks WHERE user_id = ? ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
+        SELECT * FROM Locks WHERE UserId = ? ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
       `).bind(userId, limit, offset).all() as { results: Lock[] };
 
       return result.results || [];

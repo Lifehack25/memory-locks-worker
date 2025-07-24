@@ -7,7 +7,7 @@ export interface Lock {
   NotifiedWhenScanned: boolean;
   ScanCount: number;
   CreatedAt: string;
-  user_id?: number;
+  UserId?: number;
 }
 
 export interface MediaObject {
@@ -17,7 +17,7 @@ export interface MediaObject {
   Url: string;
   FileName?: string;
   MediaType: string;
-  IsProfilePicture: boolean;
+  IsMainPicture: boolean;
   CreatedAt: string;
 }
 

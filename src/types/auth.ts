@@ -2,26 +2,26 @@
 export interface User {
   id: number;
   email?: string;
-  phone_number?: string;
-  auth_provider: 'email' | 'phone' | 'google' | 'apple';
-  provider_id?: string;
+  PhoneNumber?: string;
+  AuthProvider: 'email' | 'phone' | 'google' | 'apple';
+  ProviderId?: string;
   name?: string;
-  email_verified: boolean;
-  phone_verified: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login_at?: string;
+  EmailVerified: boolean;
+  PhoneVerified: boolean;
+  CreatedAt: string;
+  UpdatedAt: string;
+  LastLoginAt?: string;
 }
 
 export interface RefreshToken {
   id: number;
-  user_id: number;
-  token_hash: string;
-  expires_at: string;
-  created_at: string;
-  last_used_at?: string;
-  device_info?: string;
-  is_revoked: boolean;
+  UserId: number;
+  TokenHash: string;
+  ExpiresAt: string;
+  CreatedAt: string;
+  LastUsedAt?: string;
+  DeviceInfo?: string;
+  IsRevoked: boolean;
 }
 
 // JWT token payload interface
@@ -65,10 +65,10 @@ export interface AuthResponse {
 // User creation request for admin endpoints
 export interface CreateUserRequest {
   email?: string;
-  phone_number?: string;
-  auth_provider: 'email' | 'phone' | 'google' | 'apple';
-  provider_id?: string;
+  PhoneNumber?: string;
+  AuthProvider: 'email' | 'phone' | 'google' | 'apple';
+  ProviderId?: string;
   name?: string;
-  email_verified?: boolean;
-  phone_verified?: boolean;
+  EmailVerified?: boolean;
+  PhoneVerified?: boolean;
 }
