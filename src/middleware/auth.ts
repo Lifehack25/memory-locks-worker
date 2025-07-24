@@ -3,12 +3,12 @@ import { Env } from '../types/common';
 
 // API Key validation middleware
 export class AuthMiddleware {
-  
+
   static validateApiKey(providedKey: string, expectedKey: string): boolean {
     if (!providedKey || !expectedKey) {
       return false;
     }
-    
+
     return providedKey === expectedKey && providedKey.length > 0;
   }
 
@@ -17,10 +17,10 @@ export class AuthMiddleware {
     return async (c: Context<{ Bindings: Env }>, next: () => Promise<void>) => {
       const apiKey = c.req.header('X-API-Key') || c.req.query('api_key');
       const expectedKey = c.env.ADMIN_API_KEY;
-      
+
       if (!apiKey) {
         return c.json(
-          { 
+          {
             error: 'API key required',
             success: false
           },
@@ -30,7 +30,7 @@ export class AuthMiddleware {
 
       if (!this.validateApiKey(apiKey, expectedKey)) {
         return c.json(
-          { 
+          {
             error: 'Invalid API key',
             success: false
           },
@@ -47,7 +47,7 @@ export class AuthMiddleware {
   static checkApiKey(c: Context<{ Bindings: Env }>): { valid: boolean; error?: string } {
     const apiKey = c.req.header('X-API-Key') || c.req.query('api_key');
     const expectedKey = c.env.ADMIN_API_KEY;
-    
+
     if (!apiKey) {
       return { valid: false, error: 'API key required' };
     }
@@ -65,18 +65,18 @@ export class AuthMiddleware {
     const cfConnectingIP = c.req.header('CF-Connecting-IP');
     const xForwardedFor = c.req.header('X-Forwarded-For');
     const xRealIP = c.req.header('X-Real-IP');
-    
+
     // Prefer Cloudflare's CF-Connecting-IP as it's most reliable
     if (cfConnectingIP) {
       return cfConnectingIP;
     }
-    
+
     // Fallback to X-Forwarded-For (take first IP)
     if (xForwardedFor) {
       const ips = xForwardedFor.split(',').map(ip => ip.trim());
       return ips[0];
     }
-    
+
     // Final fallback
     return xRealIP || 'unknown';
   }
