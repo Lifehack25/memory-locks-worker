@@ -392,10 +392,17 @@ app.get('/api/data/users/provider/:provider/:providerId',
     const user = await userService.getUserByProvider(provider, decodeURIComponent(providerId));
     
     if (!user) {
+      Logger.warn('User not found by provider', { provider, providerId });
       return c.json({ error: 'User not found' }, 404);
     }
     
-    Logger.info('User lookup by provider successful', { provider, providerId });
+    Logger.info('User lookup by provider successful', { 
+      provider, 
+      providerId, 
+      userId: user.id, 
+      email: user.email || 'null',
+      authProvider: user.AuthProvider 
+    });
     return c.json(user);
   }
 );
