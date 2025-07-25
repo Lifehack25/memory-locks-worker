@@ -71,7 +71,7 @@ export class UserService {
   async updateUserLoginTime(userId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE users SET LastLoginAt = datetime('now'), UpdatedAt = datetime('now') 
+        UPDATE users SET LastLoginAt = datetime('now', '+2 hours'), UpdatedAt = datetime('now', '+2 hours') 
         WHERE id = ?
       `).bind(userId).run();
 

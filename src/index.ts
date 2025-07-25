@@ -450,6 +450,162 @@ app.delete('/api/data/users/provider/:provider/:providerId',
   }
 );
 
+// Lock data API endpoints (for main API integration)
+app.get('/api/data/locks/:lockId', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  if (!lockId) {
+    throw new Error('Invalid lock ID');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const lock = await locksService.getLockById(lockId);
+  
+  if (!lock) {
+    return c.json({ error: 'Lock not found' }, 404);
+  }
+  
+  return c.json(lock);
+});
+
+app.get('/api/data/locks/hashid/:hashId',
+  ValidationMiddleware.validateParams(HashIdParamSchema),
+  async (c) => {
+    const { hashId } = ValidationMiddleware.getValidatedParams<{ hashId: string }>(c);
+    const hashidsService = new HashidsService();
+    const lockId = hashidsService.decode(hashId);
+    
+    if (!lockId) {
+      return c.json({ error: 'Invalid hash ID' }, 400);
+    }
+
+    const locksService = new LocksService(c.env.DB);
+    const lock = await locksService.getLockById(lockId);
+    
+    if (!lock) {
+      return c.json({ error: 'Lock not found' }, 404);
+    }
+    
+    return c.json(lock);
+  }
+);
+
+app.get('/api/data/locks/user/:userId', async (c) => {
+  const userId = parseInt(c.req.param('userId') || '0');
+  if (!userId || userId <= 0) {
+    throw new Error('Invalid user ID: User ID must be a positive integer');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const userService = new UserService(c.env.DB);
+  
+  // Update user's last login time since they're actively using the app
+  await userService.updateUserLoginTime(userId).catch(error => {
+    Logger.warn('Failed to update user login time', { userId, error: error.message });
+  });
+  
+  const locks = await locksService.getLocksByUserId(userId);
+  
+  // Transform to the expected format for the mobile app
+  const lockDtos = locks.map(lock => ({
+    Id: lock.Id,
+    LockName: lock.LockName,
+    SealDate: lock.SealDate,
+    NotifiedWhenScanned: lock.NotifiedWhenScanned,
+    ScanCount: lock.ScanCount,
+    CreatedAt: lock.CreatedAt
+  }));
+  
+  Logger.info('User locks retrieved via API', { userId, count: locks?.length || 0 });
+  return c.json(lockDtos);
+});
+
+app.post('/api/data/locks/:lockId/connect', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  const userId = parseInt(c.req.header('X-User-ID') || '0');
+  
+  if (!lockId || !userId) {
+    throw new Error('Invalid lock ID or user ID');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const success = await locksService.updateLockOwner(lockId, userId);
+  
+  if (!success) {
+    throw new DatabaseError('Failed to connect lock');
+  }
+  
+  Logger.info('Lock connected via API', { lockId, userId });
+  return c.json({ success: true });
+});
+
+app.patch('/api/data/locks/:lockId/name', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  if (!lockId) {
+    throw new Error('Invalid lock ID');
+  }
+  
+  const body = await c.req.json();
+  const lockName = body.lockName;
+  
+  if (!lockName || typeof lockName !== 'string') {
+    throw new Error('Lock name is required');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const success = await locksService.updateLockName(lockId, lockName);
+  
+  if (!success) {
+    throw new DatabaseError('Failed to update lock name');
+  }
+  
+  Logger.info('Lock name updated via API', { lockId, lockName });
+  return c.json({ success: true });
+});
+
+app.patch('/api/data/locks/:lockId/seal', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  if (!lockId) {
+    throw new Error('Invalid lock ID');
+  }
+  
+  const body = await c.req.json();
+  const sealDate = body.sealDate;
+  
+  const locksService = new LocksService(c.env.DB);
+  const success = await locksService.updateLock(lockId, { sealDate });
+  
+  if (!success) {
+    throw new DatabaseError('Failed to update lock seal');
+  }
+  
+  Logger.info('Lock seal updated via API', { lockId, sealDate });
+  return c.json({ success: true });
+});
+
+app.patch('/api/data/locks/:lockId/notifications', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  if (!lockId) {
+    throw new Error('Invalid lock ID');
+  }
+  
+  const body = await c.req.json();
+  const notifiedWhenScanned = body.notifiedWhenScanned;
+  
+  if (typeof notifiedWhenScanned !== 'boolean') {
+    throw new Error('notifiedWhenScanned must be a boolean');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const success = await locksService.updateNotificationSettings(lockId, notifiedWhenScanned);
+  
+  if (!success) {
+    throw new DatabaseError('Failed to update notification settings');
+  }
+  
+  Logger.info('Lock notifications updated via API', { lockId, notifiedWhenScanned });
+  return c.json({ success: true });
+});
+
 // Authentication routes
 app.post('/api/auth/request-code',
   ValidationMiddleware.validateBody(AuthRequestSchema),
