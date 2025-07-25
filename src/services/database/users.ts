@@ -1,5 +1,6 @@
 import { User, CreateUserRequest } from '../../types/auth';
 import { Env } from '../../types/common';
+import { DatabaseError } from '../../middleware/errorHandler';
 
 export class UserService {
   constructor(private readonly db: D1Database) {}
@@ -38,7 +39,7 @@ export class UserService {
       return null;
     } catch (error) {
       console.error('Error creating user:', error);
-      throw new Error('Failed to create user');
+      throw new DatabaseError('Failed to create user');
     }
   }
 
@@ -51,7 +52,7 @@ export class UserService {
       return user;
     } catch (error) {
       console.error('Error getting user by identifier:', error);
-      throw new Error('Failed to retrieve user');
+      throw new DatabaseError('Failed to retrieve user');
     }
   }
 
@@ -64,7 +65,7 @@ export class UserService {
       return user;
     } catch (error) {
       console.error('Error getting user by ID:', error);
-      throw new Error('Failed to retrieve user');
+      throw new DatabaseError('Failed to retrieve user');
     }
   }
 
@@ -78,7 +79,7 @@ export class UserService {
       return result.success;
     } catch (error) {
       console.error('Error updating user login time:', error);
-      throw new Error('Failed to update login time');
+      throw new DatabaseError('Failed to update login time');
     }
   }
 
@@ -101,7 +102,7 @@ export class UserService {
       return result.success;
     } catch (error) {
       console.error('Error deleting user by provider:', error);
-      throw new Error('Failed to delete user');
+      throw new DatabaseError('Failed to delete user');
     }
   }
 
@@ -121,7 +122,7 @@ export class UserService {
       };
     } catch (error) {
       console.error('Error getting user stats:', error);
-      throw new Error('Failed to get user statistics');
+      throw new DatabaseError('Failed to get user statistics');
     }
   }
 
@@ -136,7 +137,7 @@ export class UserService {
       return result.results || [];
     } catch (error) {
       console.error('Error getting all users:', error);
-      throw new Error('Failed to retrieve users');
+      throw new DatabaseError('Failed to retrieve users');
     }
   }
 
@@ -153,7 +154,7 @@ export class UserService {
       return user;
     } catch (error) {
       console.error('Error getting user by provider:', error);
-      throw new Error('Failed to retrieve user by provider');
+      throw new DatabaseError('Failed to retrieve user by provider');
     }
   }
 }

@@ -8,7 +8,7 @@ import { RateLimitService, RateLimitError } from './middleware/rateLimit';
 import { AuthMiddleware } from './middleware/auth';
 import { corsConfig, publicCorsConfig, adminCorsConfig, getCorsConfig } from './middleware/cors';
 import { ValidationMiddleware } from './middleware/validation';
-import { ErrorHandler, Logger, NotFoundError, UnauthorizedError, DatabaseError } from './middleware/errorHandler';
+import { ErrorHandler, Logger, NotFoundError, UnauthorizedError, DatabaseError, ValidationError } from './middleware/errorHandler';
 import { CreateUserRequest } from './types/auth';
 
 // Import validation schemas
@@ -50,6 +50,30 @@ app.use('/api/*', corsConfig);
 
 // Health check endpoint
 app.get('/health', ErrorHandler.healthCheck());
+
+// Root endpoint - API documentation
+app.get('/', (c) => {
+  return c.json({
+    message: 'Memory Locks Worker API',
+    version: '2.0.0',
+    endpoints: {
+      generateLocks: 'POST /api/locks/generate/{count} (requires X-API-Key header)',
+      health: 'GET /health',
+      album: 'GET /album/{hashId}',
+      admin: {
+        users: 'GET /admin/users',
+        locks: 'GET /admin/locks',
+        bulkGenerate: 'POST /admin/bulk-generate'
+      },
+      api: {
+        userData: 'GET /api/data/users/{userId}',
+        lockData: 'GET /api/data/locks/{lockId}',
+        connectLock: 'PATCH /api/data/locks/{lockId}/connect'
+      }
+    },
+    documentation: 'https://github.com/memorylocks/api-docs'
+  });
+});
 
 // Album routes (public access)
 app.get('/album/:hashId', 
@@ -116,6 +140,42 @@ app.get('/album/:hashId',
     });
 
     return c.json(albumData);
+  }
+);
+
+// Public API routes
+app.post('/api/locks/generate/:count', 
+  ValidationMiddleware.validateParams(CountParamSchema),
+  async (c) => {
+    // Check for API key
+    const apiKey = c.req.header('X-API-Key');
+    if (!apiKey) {
+      return c.json({
+        error: 'Unauthorized: Invalid API key',
+        success: false
+      }, 401);
+    }
+
+    // Validate API key
+    if (!AuthMiddleware.validateApiKey(apiKey, c.env.ADMIN_API_KEY)) {
+      return c.json({
+        error: 'Unauthorized: Invalid API key',
+        success: false
+      }, 401);
+    }
+
+    const { count } = ValidationMiddleware.getValidatedParams<{ count: number }>(c);
+    const locksService = new LocksService(c.env.DB);
+    
+    const result = await locksService.generateBulkLocks(count);
+    
+    Logger.info('Public locks generated', { 
+      count: result.generated, 
+      startId: result.startId, 
+      endId: result.endId 
+    });
+
+    return c.json(result, 201);
   }
 );
 
@@ -526,13 +586,15 @@ app.get('/api/data/locks/user/:userId', async (c) => {
   return c.json(lockDtos);
 });
 
-app.post('/api/data/locks/:lockId/connect', async (c) => {
-  const lockId = parseInt(c.req.param('lockId') || '0');
-  const userId = parseInt(c.req.header('X-User-ID') || '0');
-  
-  if (!lockId || !userId) {
-    throw new Error('Invalid lock ID or user ID');
-  }
+app.patch('/api/data/locks/:lockId/connect', 
+  ValidationMiddleware.validateParams(LockIdParamSchema),
+  async (c) => {
+    const { lockId } = ValidationMiddleware.getValidatedParams<{ lockId: number }>(c);
+    const userId = parseInt(c.req.header('X-User-ID') || '0');
+    
+    if (!userId) {
+      throw new ValidationError('X-User-ID header is required');
+    }
   
   const locksService = new LocksService(c.env.DB);
   const success = await locksService.updateLockOwner(lockId, userId);

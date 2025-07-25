@@ -1,5 +1,6 @@
 import { Lock, MediaObject, LockWithMedia, AlbumResponse, EnhancedMediaObject, BulkLockGenerationResponse } from '../../types/locks';
 import { Env } from '../../types/common';
+import { DatabaseError } from '../../middleware/errorHandler';
 
 export class LocksService {
   constructor(private readonly db: D1Database) {}
@@ -40,7 +41,7 @@ export class LocksService {
       };
     } catch (error) {
       console.error('Error generating bulk locks:', error);
-      throw new Error('Failed to generate locks');
+      throw new DatabaseError('Failed to generate locks');
     }
   }
 
@@ -63,7 +64,7 @@ export class LocksService {
       return lock;
     } catch (error) {
       console.error('Error getting lock by ID:', error);
-      throw new Error('Failed to retrieve lock');
+      throw new DatabaseError('Failed to retrieve lock');
     }
   }
 
@@ -105,7 +106,7 @@ export class LocksService {
       };
     } catch (error) {
       console.error('Error getting album data:', error);
-      throw new Error('Failed to retrieve album data');
+      throw new DatabaseError('Failed to retrieve album data');
     }
   }
 
@@ -147,7 +148,7 @@ export class LocksService {
       return locksWithMedia;
     } catch (error) {
       console.error('Error getting user locks:', error);
-      throw new Error('Failed to retrieve user locks');
+      throw new DatabaseError('Failed to retrieve user locks');
     }
   }
 
@@ -161,7 +162,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating lock notifications:', error);
-      throw new Error('Failed to update lock notifications');
+      throw new DatabaseError('Failed to update lock notifications');
     }
   }
 
@@ -174,7 +175,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error sealing lock:', error);
-      throw new Error('Failed to seal lock');
+      throw new DatabaseError('Failed to seal lock');
     }
   }
 
@@ -187,7 +188,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error unsealing lock:', error);
-      throw new Error('Failed to unseal lock');
+      throw new DatabaseError('Failed to unseal lock');
     }
   }
 
@@ -200,7 +201,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating lock name:', error);
-      throw new Error('Failed to update lock name');
+      throw new DatabaseError('Failed to update lock name');
     }
   }
 
@@ -213,7 +214,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating album title:', error);
-      throw new Error('Failed to update album title');
+      throw new DatabaseError('Failed to update album title');
     }
   }
 
@@ -226,7 +227,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating lock owner:', error);
-      throw new Error('Failed to update lock owner');
+      throw new DatabaseError('Failed to update lock owner');
     }
   }
 
@@ -254,7 +255,7 @@ export class LocksService {
       };
     } catch (error) {
       console.error('Error clearing user from locks:', error);
-      throw new Error('Failed to clear user from locks');
+      throw new DatabaseError('Failed to clear user from locks');
     }
   }
 
@@ -280,7 +281,7 @@ export class LocksService {
       return mediaResult.results || [];
     } catch (error) {
       console.error('Error getting media objects:', error);
-      throw new Error('Failed to retrieve media objects');
+      throw new DatabaseError('Failed to retrieve media objects');
     }
   }
 
@@ -307,7 +308,7 @@ export class LocksService {
       };
     } catch (error) {
       console.error('Error getting lock stats:', error);
-      throw new Error('Failed to get lock statistics');
+      throw new DatabaseError('Failed to get lock statistics');
     }
   }
 
@@ -319,7 +320,7 @@ export class LocksService {
       `).bind(lockId).run();
     } catch (error) {
       console.error('Error incrementing scan count:', error);
-      throw new Error('Failed to increment scan count');
+      throw new DatabaseError('Failed to increment scan count');
     }
   }
 
@@ -343,7 +344,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating lock:', error);
-      throw new Error('Failed to update lock');
+      throw new DatabaseError('Failed to update lock');
     }
   }
 
@@ -356,7 +357,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error updating notification settings:', error);
-      throw new Error('Failed to update notification settings');
+      throw new DatabaseError('Failed to update notification settings');
     }
   }
 
@@ -370,7 +371,7 @@ export class LocksService {
       return result.results || [];
     } catch (error) {
       console.error('Error getting all locks:', error);
-      throw new Error('Failed to retrieve locks');
+      throw new DatabaseError('Failed to retrieve locks');
     }
   }
 
@@ -384,7 +385,7 @@ export class LocksService {
       return result.results || [];
     } catch (error) {
       console.error('Error getting locks by user ID:', error);
-      throw new Error('Failed to retrieve user locks');
+      throw new DatabaseError('Failed to retrieve user locks');
     }
   }
 
@@ -403,7 +404,7 @@ export class LocksService {
       return result.success;
     } catch (error) {
       console.error('Error deleting lock:', error);
-      throw new Error('Failed to delete lock');
+      throw new DatabaseError('Failed to delete lock');
     }
   }
 
