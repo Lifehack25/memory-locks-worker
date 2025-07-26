@@ -22,7 +22,7 @@ export class UserService {
         userData.PhoneVerified ? 1 : 0
       ).run();
 
-      if (insertResult.success && (insertResult as any).meta?.last_row_id) {
+      if (insertResult.success && (insertResult as any).meta?.last_row_id !== undefined) {
         return {
           id: (insertResult as any).meta.last_row_id as number,
           email: userData.email,
