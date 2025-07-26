@@ -25,14 +25,14 @@ export const CreateUserSchema = z.object({
   EmailVerified: z.boolean().default(false),
   PhoneVerified: z.boolean().default(false),
 }).refine(data => {
-  // For Apple/Google users, ProviderId is sufficient
+  // For Apple/Google users, ProviderId is sufficient (email is optional due to privacy)
   if (data.AuthProvider === 'apple' || data.AuthProvider === 'google') {
     return !!data.ProviderId && data.ProviderId.length > 0;
   }
   // For email/phone users, require email or PhoneNumber
   return !!(data.email && data.email.length > 0) || !!(data.PhoneNumber && data.PhoneNumber.length > 0);
 }, {
-  message: 'Either email, PhoneNumber, or ProviderId (for social auth) must be provided',
+  message: 'For social auth (Apple/Google): ProviderId is required. For email/phone auth: either email or PhoneNumber must be provided',
 });
 
 // Lock-related schemas
