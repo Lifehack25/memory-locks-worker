@@ -326,20 +326,40 @@ export class LocksService {
 
   async updateLock(lockId: number, updates: any): Promise<boolean> {
     try {
+      // Build dynamic SQL to only update provided fields
+      const setParts: string[] = [];
+      const bindings: any[] = [];
+
+      if (updates.lockName !== undefined) {
+        setParts.push('LockName = ?');
+        bindings.push(updates.lockName);
+      }
+
+      if (updates.albumTitle !== undefined) {
+        setParts.push('AlbumTitle = ?');
+        bindings.push(updates.albumTitle);
+      }
+
+      if (updates.sealDate !== undefined) {
+        setParts.push('SealDate = ?');
+        bindings.push(updates.sealDate);
+      }
+
+      if (updates.notifiedWhenScanned !== undefined) {
+        setParts.push('NotifiedWhenScanned = ?');
+        bindings.push(updates.notifiedWhenScanned);
+      }
+
+      if (setParts.length === 0) {
+        // No updates to apply
+        return true;
+      }
+
+      bindings.push(lockId);
+
       const result = await this.db.prepare(`
-        UPDATE Locks SET 
-          LockName = COALESCE(?, LockName),
-          AlbumTitle = COALESCE(?, AlbumTitle),
-          SealDate = COALESCE(?, SealDate),
-          NotifiedWhenScanned = COALESCE(?, NotifiedWhenScanned)
-        WHERE Id = ?
-      `).bind(
-        updates.lockName || null,
-        updates.albumTitle || null,
-        updates.sealDate || null,
-        updates.notifiedWhenScanned !== undefined ? updates.notifiedWhenScanned : null,
-        lockId
-      ).run();
+        UPDATE Locks SET ${setParts.join(', ')} WHERE Id = ?
+      `).bind(...bindings).run();
 
       return result.success;
     } catch (error) {
