@@ -154,6 +154,19 @@ export const MediaObjectSchema = z.object({
   CreatedAt: z.string().datetime(),
 });
 
+export const CreateMediaObjectSchema = z.object({
+  lockId: PositiveIntSchema,
+  cloudflareImageId: z.string().min(1).max(255),
+  url: z.string().url(),
+  fileName: OptionalStringSchema,
+  mediaType: MediaTypeSchema,
+  isMainPicture: z.boolean().default(false),
+});
+
+export const MediaObjectIdParamSchema = z.object({
+  mediaObjectId: z.coerce.number().int().positive(),
+});
+
 // Validation helper functions
 export function validateHashId(hashId: unknown): string {
   return HashIdSchema.parse(hashId);
@@ -205,3 +218,4 @@ export type VerifyCodeRequest = z.infer<typeof VerifyCodeSchema>;
 export type SocialAuthRequest = z.infer<typeof SocialAuthSchema>;
 export type ApiResponse = z.infer<typeof ApiResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
+export type CreateMediaObjectRequest = z.infer<typeof CreateMediaObjectSchema>;

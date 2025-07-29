@@ -285,6 +285,89 @@ export class LocksService {
     }
   }
 
+  async createMediaObject(
+    lockId: number, 
+    cloudflareImageId: string, 
+    url: string, 
+    fileName: string | null, 
+    mediaType: string, 
+    isMainPicture: boolean = false
+  ): Promise<MediaObject | null> {
+    try {
+      const result = await this.db.prepare(`
+        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        lockId,
+        cloudflareImageId,
+        url,
+        fileName,
+        mediaType,
+        isMainPicture ? 1 : 0,
+        new Date().toISOString()
+      ).run();
+
+      if (!result.success || !(result as any).meta?.last_row_id) {
+        return null;
+      }
+
+      // Fetch the created media object
+      const mediaObjectId = (result as any).meta.last_row_id as number;
+      const mediaObject = await this.db.prepare(`
+        SELECT 
+          id as Id,
+          LockId,
+          CloudflareImageId,
+          Url,
+          FileName,
+          MediaType,
+          IsMainPicture,
+          CreatedAt
+        FROM mediaobjects WHERE id = ?
+      `).bind(mediaObjectId).first() as MediaObject | null;
+
+      return mediaObject;
+    } catch (error) {
+      console.error('Error creating media object:', error);
+      throw new DatabaseError('Failed to create media object');
+    }
+  }
+
+  async deleteMediaObject(mediaObjectId: number): Promise<boolean> {
+    try {
+      const result = await this.db.prepare(`
+        DELETE FROM mediaobjects WHERE id = ?
+      `).bind(mediaObjectId).run();
+
+      return result.success && (result.changes || 0) > 0;
+    } catch (error) {
+      console.error('Error deleting media object:', error);
+      throw new DatabaseError('Failed to delete media object');
+    }
+  }
+
+  async getMediaObjectById(mediaObjectId: number): Promise<MediaObject | null> {
+    try {
+      const mediaObject = await this.db.prepare(`
+        SELECT 
+          id as Id,
+          LockId,
+          CloudflareImageId,
+          Url,
+          FileName,
+          MediaType,
+          IsMainPicture,
+          CreatedAt
+        FROM mediaobjects WHERE id = ?
+      `).bind(mediaObjectId).first() as MediaObject | null;
+
+      return mediaObject;
+    } catch (error) {
+      console.error('Error getting media object by ID:', error);
+      throw new DatabaseError('Failed to retrieve media object');
+    }
+  }
+
   // Statistics and analytics
   async getLockStats(): Promise<{ 
     total: number; 

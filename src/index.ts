@@ -29,6 +29,8 @@ import {
   CountParamSchema,
   PaginationSchema,
   ProviderParamSchema,
+  CreateMediaObjectSchema,
+  MediaObjectIdParamSchema,
 } from './validation/schemas';
 
 // Initialize Hono app
@@ -674,6 +676,113 @@ app.patch('/api/data/locks/:lockId/notifications', async (c) => {
   Logger.info('Lock notifications updated via API', { lockId, notifiedWhenScanned });
   return c.json({ success: true });
 });
+
+// MediaObject management routes (for main API integration)
+app.post('/api/data/mediaobjects',
+  ValidationMiddleware.validateBody(CreateMediaObjectSchema),
+  async (c) => {
+    const { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture } = ValidationMiddleware.getValidatedBody<{
+      lockId: number;
+      cloudflareImageId: string;
+      url: string;
+      fileName?: string;
+      mediaType: string;
+      isMainPicture: boolean;
+    }>(c);
+    
+    const locksService = new LocksService(c.env.DB);
+    
+    // Verify lock exists
+    const lock = await locksService.getLockById(lockId);
+    if (!lock) {
+      throw new NotFoundError('Lock');
+    }
+    
+    const mediaObject = await locksService.createMediaObject(
+      lockId,
+      cloudflareImageId,
+      url,
+      fileName || null,
+      mediaType,
+      isMainPicture
+    );
+    
+    if (!mediaObject) {
+      throw new DatabaseError('Failed to create media object');
+    }
+    
+    Logger.info('MediaObject created via API', { 
+      mediaObjectId: mediaObject.Id, 
+      lockId, 
+      cloudflareImageId,
+      mediaType 
+    });
+    return c.json(mediaObject, 201);
+  }
+);
+
+app.delete('/api/data/mediaobjects/:mediaObjectId',
+  ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
+  async (c) => {
+    const { mediaObjectId } = ValidationMiddleware.getValidatedParams<{ mediaObjectId: number }>(c);
+    
+    const locksService = new LocksService(c.env.DB);
+    
+    // Verify media object exists
+    const mediaObject = await locksService.getMediaObjectById(mediaObjectId);
+    if (!mediaObject) {
+      throw new NotFoundError('MediaObject');
+    }
+    
+    const success = await locksService.deleteMediaObject(mediaObjectId);
+    if (!success) {
+      throw new DatabaseError('Failed to delete media object');
+    }
+    
+    Logger.info('MediaObject deleted via API', { 
+      mediaObjectId, 
+      lockId: mediaObject.LockId,
+      cloudflareImageId: mediaObject.CloudflareImageId
+    });
+    return c.json({ success: true });
+  }
+);
+
+app.get('/api/data/mediaobjects/:mediaObjectId',
+  ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
+  async (c) => {
+    const { mediaObjectId } = ValidationMiddleware.getValidatedParams<{ mediaObjectId: number }>(c);
+    
+    const locksService = new LocksService(c.env.DB);
+    const mediaObject = await locksService.getMediaObjectById(mediaObjectId);
+    
+    if (!mediaObject) {
+      throw new NotFoundError('MediaObject');
+    }
+    
+    return c.json(mediaObject);
+  }
+);
+
+app.get('/api/data/mediaobjects/lock/:lockId',
+  ValidationMiddleware.validateParams(LockIdParamSchema),
+  async (c) => {
+    const { lockId } = ValidationMiddleware.getValidatedParams<{ lockId: number }>(c);
+    
+    const locksService = new LocksService(c.env.DB);
+    
+    // Verify lock exists
+    const lock = await locksService.getLockById(lockId);
+    if (!lock) {
+      throw new NotFoundError('Lock');
+    }
+    
+    const mediaObjects = await locksService.getMediaObjectsByLockId(lockId);
+    
+    Logger.info('MediaObjects retrieved via API', { lockId, count: mediaObjects.length });
+    return c.json(mediaObjects);
+  }
+);
 
 // Authentication routes
 app.post('/api/auth/request-code',
