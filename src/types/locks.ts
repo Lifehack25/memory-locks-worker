@@ -21,13 +21,6 @@ export interface MediaObject {
   CreatedAt: string;
 }
 
-export interface EnhancedMediaObject extends MediaObject {
-  urls?: {
-    public?: string;
-    profile?: string;
-  };
-}
-
 export interface LockWithMedia extends Lock {
   media: MediaObject[];
 }
@@ -37,7 +30,7 @@ export interface AlbumResponse {
   lockName: string;
   albumTitle: string;
   sealDate?: string;
-  media: EnhancedMediaObject[];
+  media: MediaObject[];
 }
 
 // Request interfaces for lock updates

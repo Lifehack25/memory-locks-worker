@@ -1,4 +1,4 @@
-import { Lock, MediaObject, LockWithMedia, AlbumResponse, EnhancedMediaObject, BulkLockGenerationResponse } from '../../types/locks';
+import { Lock, MediaObject, LockWithMedia, AlbumResponse, BulkLockGenerationResponse } from '../../types/locks';
 import { Env } from '../../types/common';
 import { DatabaseError } from '../../middleware/errorHandler';
 
@@ -77,32 +77,13 @@ export class LocksService {
       // Get media objects for the lock
       const mediaObjects = await this.getMediaObjectsByLockId(lockId);
       
-      // DEBUG: Log media objects to understand structure
-      console.log('🔍 DEBUG - MediaObjects for lockId', lockId, ':', JSON.stringify(mediaObjects, null, 2));
-      
-      // Enhance media objects with custom domain URLs
-      const enhancedMedia: EnhancedMediaObject[] = mediaObjects.map(media => {
-        const isMainPic = Boolean(media.IsMainPicture);
-        
-        // DEBUG: Log each media object processing
-        console.log(`🔍 DEBUG - Media ${media.Id}: IsMainPicture=${media.IsMainPicture}, Boolean(IsMainPicture)=${isMainPic}`);
-        
-        return {
-          ...media,
-          urls: {
-            public: `https://media.memorylocks.com/${media.CloudflareImageId}/public`,
-            profile: isMainPic 
-              ? `https://media.memorylocks.com/${media.CloudflareImageId}/w=1080,h=auto,fit=scale-down`
-              : `https://media.memorylocks.com/${media.CloudflareImageId}/public`
-          }
-        };
-      });
-
+      // Return media objects directly without URL enhancement
+      // URLs are now stored as /standard variant in database
       return {
         lockName: lock.LockName || 'Untitled Lock',
         albumTitle: lock.AlbumTitle || 'Memory Album',
         sealDate: lock.SealDate || undefined,
-        media: enhancedMedia
+        media: mediaObjects
       };
     } catch (error) {
       console.error('Error getting album data:', error);
