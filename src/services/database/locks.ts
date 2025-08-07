@@ -273,12 +273,13 @@ export class LocksService {
     url: string, 
     fileName: string | null, 
     mediaType: string, 
-    isMainPicture: boolean = false
+    isMainPicture: boolean = false,
+    displayOrder?: number
   ): Promise<MediaObject | null> {
     try {
       const result = await this.db.prepare(`
-        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         lockId,
         cloudflareImageId,
@@ -286,7 +287,8 @@ export class LocksService {
         fileName,
         mediaType,
         isMainPicture ? 1 : 0,
-        new Date().toISOString()
+        new Date().toISOString(),
+        displayOrder || null
       ).run();
 
       if (!result.success || !(result as any).meta?.last_row_id) {
@@ -304,7 +306,8 @@ export class LocksService {
           FileName,
           MediaType,
           IsMainPicture,
-          CreatedAt
+          CreatedAt,
+          DisplayOrder
         FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 
@@ -339,7 +342,8 @@ export class LocksService {
           FileName,
           MediaType,
           IsMainPicture,
-          CreatedAt
+          CreatedAt,
+          DisplayOrder
         FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 

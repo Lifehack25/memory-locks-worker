@@ -161,6 +161,7 @@ export const CreateMediaObjectSchema = z.object({
   fileName: OptionalStringSchema,
   mediaType: MediaTypeSchema,
   isMainPicture: z.boolean().default(false),
+  displayOrder: z.number().int().positive().optional(),
 });
 
 export const MediaObjectIdParamSchema = z.object({

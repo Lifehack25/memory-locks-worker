@@ -681,13 +681,14 @@ app.patch('/api/data/locks/:lockId/notifications', async (c) => {
 app.post('/api/data/mediaobjects',
   ValidationMiddleware.validateBody(CreateMediaObjectSchema),
   async (c) => {
-    const { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture } = ValidationMiddleware.getValidatedBody<{
+    const { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture, displayOrder } = ValidationMiddleware.getValidatedBody<{
       lockId: number;
       cloudflareImageId: string;
       url: string;
       fileName?: string;
       mediaType: string;
       isMainPicture: boolean;
+      displayOrder?: number;
     }>(c);
     
     const locksService = new LocksService(c.env.DB);
@@ -704,7 +705,8 @@ app.post('/api/data/mediaobjects',
       url,
       fileName || null,
       mediaType,
-      isMainPicture
+      isMainPicture,
+      displayOrder
     );
     
     if (!mediaObject) {
