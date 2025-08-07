@@ -19,6 +19,7 @@ export interface MediaObject {
   MediaType: string;
   IsMainPicture: boolean;
   CreatedAt: string;
+  DisplayOrder?: number;
 }
 
 export interface LockWithMedia extends Lock {

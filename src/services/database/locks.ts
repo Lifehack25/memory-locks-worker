@@ -108,7 +108,7 @@ export class LocksService {
 
       // Bulk fetch all media objects to avoid N+1 problem
       const mediaObjects = await this.db.prepare(`
-        SELECT * FROM MediaObjects WHERE LockId IN (${placeholders}) ORDER BY LockId, CreatedAt
+        SELECT * FROM MediaObjects WHERE LockId IN (${placeholders}) ORDER BY LockId, DisplayOrder ASC, CreatedAt ASC
       `).bind(...lockIds).all() as { results: MediaObject[] };
 
       // Group media by lock ID
@@ -252,8 +252,9 @@ export class LocksService {
           FileName,
           MediaType,
           IsMainPicture,
-          CreatedAt
-        FROM mediaobjects WHERE LockId = ? ORDER BY CreatedAt
+          CreatedAt,
+          DisplayOrder
+        FROM mediaobjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
       `).bind(lockId).all() as { results: MediaObject[] };
 
       // DEBUG: Log raw database results
