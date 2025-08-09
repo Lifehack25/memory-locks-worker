@@ -723,32 +723,6 @@ app.post('/api/data/mediaobjects',
   }
 );
 
-app.delete('/api/data/mediaobjects/:mediaObjectId',
-  ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
-  async (c) => {
-    const { mediaObjectId } = ValidationMiddleware.getValidatedParams<{ mediaObjectId: number }>(c);
-    
-    const locksService = new LocksService(c.env.DB);
-    
-    // Verify media object exists
-    const mediaObject = await locksService.getMediaObjectById(mediaObjectId);
-    if (!mediaObject) {
-      throw new NotFoundError('MediaObject');
-    }
-    
-    const success = await locksService.deleteMediaObject(mediaObjectId);
-    if (!success) {
-      throw new DatabaseError('Failed to delete media object');
-    }
-    
-    Logger.info('MediaObject deleted via API', { 
-      mediaObjectId, 
-      lockId: mediaObject.LockId,
-      cloudflareImageId: mediaObject.CloudflareImageId
-    });
-    return c.json({ success: true });
-  }
-);
 
 app.get('/api/data/mediaobjects/:mediaObjectId',
   ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
