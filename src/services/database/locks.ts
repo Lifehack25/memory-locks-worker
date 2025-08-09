@@ -331,6 +331,19 @@ export class LocksService {
     }
   }
 
+  async updateMediaDisplayOrder(mediaObjectId: number, displayOrder: number): Promise<boolean> {
+    try {
+      const result = await this.db.prepare(`
+        UPDATE mediaobjects SET DisplayOrder = ? WHERE id = ?
+      `).bind(displayOrder, mediaObjectId).run();
+
+      return result.success;
+    } catch (error) {
+      console.error('Error updating media display order:', error);
+      throw new DatabaseError('Failed to update media display order');
+    }
+  }
+
   async getMediaObjectById(mediaObjectId: number): Promise<MediaObject | null> {
     try {
       const mediaObject = await this.db.prepare(`

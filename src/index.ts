@@ -786,6 +786,40 @@ app.get('/api/data/mediaobjects/lock/:lockId',
   }
 );
 
+app.patch('/api/data/mediaobjects/:mediaObjectId/display-order',
+  ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
+  async (c) => {
+    const { mediaObjectId } = ValidationMiddleware.getValidatedParams<{ mediaObjectId: number }>(c);
+    
+    const body = await c.req.json();
+    const displayOrder = body.displayOrder;
+    
+    if (typeof displayOrder !== 'number') {
+      throw new ValidationError('displayOrder must be a number');
+    }
+    
+    const locksService = new LocksService(c.env.DB);
+    
+    // Verify media object exists
+    const mediaObject = await locksService.getMediaObjectById(mediaObjectId);
+    if (!mediaObject) {
+      throw new NotFoundError('MediaObject');
+    }
+    
+    const success = await locksService.updateMediaDisplayOrder(mediaObjectId, displayOrder);
+    if (!success) {
+      throw new DatabaseError('Failed to update media display order');
+    }
+    
+    Logger.info('MediaObject display order updated via API', { 
+      mediaObjectId, 
+      displayOrder,
+      lockId: mediaObject.LockId
+    });
+    return c.json({ success: true });
+  }
+);
+
 // Authentication routes
 app.post('/api/auth/request-code',
   ValidationMiddleware.validateBody(AuthRequestSchema),
