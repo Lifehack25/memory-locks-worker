@@ -820,6 +820,32 @@ app.patch('/api/data/mediaobjects/:mediaObjectId/display-order',
   }
 );
 
+app.delete('/api/data/mediaobjects/:mediaObjectId',
+  ValidationMiddleware.validateParams(MediaObjectIdParamSchema),
+  async (c) => {
+    const { mediaObjectId } = ValidationMiddleware.getValidatedParams<{ mediaObjectId: number }>(c);
+    
+    const locksService = new LocksService(c.env.DB);
+    
+    // Verify media object exists before deletion
+    const mediaObject = await locksService.getMediaObjectById(mediaObjectId);
+    if (!mediaObject) {
+      throw new NotFoundError('MediaObject');
+    }
+    
+    const success = await locksService.deleteMediaObject(mediaObjectId);
+    if (!success) {
+      throw new DatabaseError('Failed to delete media object');
+    }
+    
+    Logger.info('MediaObject deleted via API', { 
+      mediaObjectId,
+      lockId: mediaObject.LockId
+    });
+    return c.json({ success: true, deleted: true });
+  }
+);
+
 // Authentication routes
 app.post('/api/auth/request-code',
   ValidationMiddleware.validateBody(AuthRequestSchema),
