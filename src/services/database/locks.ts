@@ -254,7 +254,7 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM mediaobjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
+        FROM MediaObjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
       `).bind(lockId).all() as { results: MediaObject[] };
 
       // DEBUG: Log raw database results
@@ -278,7 +278,7 @@ export class LocksService {
   ): Promise<MediaObject | null> {
     try {
       const result = await this.db.prepare(`
-        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
+        INSERT INTO MediaObjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         lockId,
@@ -308,7 +308,7 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM mediaobjects WHERE id = ?
+        FROM MediaObjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 
       return mediaObject;
@@ -321,7 +321,7 @@ export class LocksService {
   async deleteMediaObject(mediaObjectId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        DELETE FROM mediaobjects WHERE id = ?
+        DELETE FROM MediaObjects WHERE id = ?
       `).bind(mediaObjectId).run();
 
       return result.success && (result.changes || 0) > 0;
@@ -334,7 +334,7 @@ export class LocksService {
   async updateMediaDisplayOrder(mediaObjectId: number, displayOrder: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE mediaobjects SET DisplayOrder = ? WHERE id = ?
+        UPDATE MediaObjects SET DisplayOrder = ? WHERE id = ?
       `).bind(displayOrder, mediaObjectId).run();
 
       return result.success;
@@ -357,7 +357,7 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM mediaobjects WHERE id = ?
+        FROM MediaObjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 
       return mediaObject;
