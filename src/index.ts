@@ -681,7 +681,7 @@ app.patch('/api/data/locks/:lockId/notifications', async (c) => {
 app.post('/api/data/mediaobjects',
   ValidationMiddleware.validateBody(CreateMediaObjectSchema),
   async (c) => {
-    const { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture, displayOrder } = ValidationMiddleware.getValidatedBody<{
+    const requestData = ValidationMiddleware.getValidatedBody<{
       lockId: number;
       cloudflareImageId: string;
       url: string;
@@ -691,13 +691,20 @@ app.post('/api/data/mediaobjects',
       displayOrder?: number;
     }>(c);
     
+    const { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture, displayOrder } = requestData;
+    
+    console.log('🔍 DEBUG - MediaObject creation request received:', requestData);
+    
     const locksService = new LocksService(c.env.DB);
     
     // Verify lock exists
     const lock = await locksService.getLockById(lockId);
     if (!lock) {
+      console.error('🔍 DEBUG - Lock not found:', lockId);
       throw new NotFoundError('Lock');
     }
+    
+    console.log('🔍 DEBUG - Lock found, creating MediaObject...');
     
     const mediaObject = await locksService.createMediaObject(
       lockId,
@@ -710,8 +717,11 @@ app.post('/api/data/mediaobjects',
     );
     
     if (!mediaObject) {
+      console.error('🔍 DEBUG - MediaObject creation returned null');
       throw new DatabaseError('Failed to create media object');
     }
+    
+    console.log('🔍 DEBUG - MediaObject creation successful:', mediaObject);
     
     Logger.info('MediaObject created via API', { 
       mediaObjectId: mediaObject.Id, 

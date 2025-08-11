@@ -14,7 +14,7 @@ export class LocksService {
         const lockName = prefix ? `${prefix}-${i + 1}` : null;
         
         const result = await this.db.prepare(`
-          INSERT INTO Locks (LockName, AlbumTitle, NotifiedWhenScanned, ScanCount, CreatedAt) 
+          INSERT INTO locks (LockName, AlbumTitle, NotifiedWhenScanned, ScanCount, CreatedAt) 
           VALUES (?, ?, ?, ?, ?)
         `).bind(
           lockName,
@@ -95,7 +95,7 @@ export class LocksService {
     try {
       // Get all locks for the user
       const locks = await this.db.prepare(`
-        SELECT * FROM Locks WHERE UserId = ? ORDER BY CreatedAt DESC
+        SELECT * FROM locks WHERE UserId = ? ORDER BY CreatedAt DESC
       `).bind(userId).all() as { results: Lock[] };
 
       if (!locks.results.length) {
@@ -108,7 +108,7 @@ export class LocksService {
 
       // Bulk fetch all media objects to avoid N+1 problem
       const mediaObjects = await this.db.prepare(`
-        SELECT * FROM MediaObjects WHERE LockId IN (${placeholders}) ORDER BY LockId, DisplayOrder ASC, CreatedAt ASC
+        SELECT * FROM mediaobjects WHERE LockId IN (${placeholders}) ORDER BY LockId, DisplayOrder ASC, CreatedAt ASC
       `).bind(...lockIds).all() as { results: MediaObject[] };
 
       // Group media by lock ID
@@ -137,7 +137,7 @@ export class LocksService {
   async updateLockNotifications(lockId: number, notifiedWhenScanned: boolean): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET NotifiedWhenScanned = ? WHERE Id = ?
+        UPDATE locks SET NotifiedWhenScanned = ? WHERE Id = ?
       `).bind(notifiedWhenScanned, lockId).run();
 
       return result.success;
@@ -150,7 +150,7 @@ export class LocksService {
   async sealLock(lockId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET SealDate = ? WHERE Id = ?
+        UPDATE locks SET SealDate = ? WHERE Id = ?
       `).bind(new Date().toISOString(), lockId).run();
 
       return result.success;
@@ -163,7 +163,7 @@ export class LocksService {
   async unsealLock(lockId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET SealDate = NULL WHERE Id = ?
+        UPDATE locks SET SealDate = NULL WHERE Id = ?
       `).bind(lockId).run();
 
       return result.success;
@@ -176,7 +176,7 @@ export class LocksService {
   async updateLockName(lockId: number, lockName: string): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET LockName = ? WHERE Id = ?
+        UPDATE locks SET LockName = ? WHERE Id = ?
       `).bind(lockName, lockId).run();
 
       return result.success;
@@ -189,7 +189,7 @@ export class LocksService {
   async updateAlbumTitle(lockId: number, albumTitle: string): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET AlbumTitle = ? WHERE Id = ?
+        UPDATE locks SET AlbumTitle = ? WHERE Id = ?
       `).bind(albumTitle, lockId).run();
 
       return result.success;
@@ -202,7 +202,7 @@ export class LocksService {
   async updateLockOwner(lockId: number, userId: number | null): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET UserId = ? WHERE Id = ?
+        UPDATE locks SET UserId = ? WHERE Id = ?
       `).bind(userId, lockId).run();
 
       return result.success;
@@ -216,7 +216,7 @@ export class LocksService {
     try {
       // First get the locks that will be affected
       const locksResult = await this.db.prepare(`
-        SELECT Id, LockName, AlbumTitle FROM Locks WHERE UserId = ?
+        SELECT Id, LockName, AlbumTitle FROM locks WHERE UserId = ?
       `).bind(userId).all() as { results: Array<{ Id: number; LockName?: string; AlbumTitle?: string }> };
 
       const affectedLocks = locksResult.results.map(lock => ({
@@ -227,7 +227,7 @@ export class LocksService {
 
       // Clear user association from all their locks
       const updateResult = await this.db.prepare(`
-        UPDATE Locks SET UserId = NULL WHERE UserId = ?
+        UPDATE locks SET UserId = NULL WHERE UserId = ?
       `).bind(userId).run();
 
       return {
@@ -254,7 +254,7 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM MediaObjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
+        FROM mediaobjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
       `).bind(lockId).all() as { results: MediaObject[] };
 
       // DEBUG: Log raw database results
@@ -277,8 +277,10 @@ export class LocksService {
     displayOrder?: number
   ): Promise<MediaObject | null> {
     try {
+      console.log('🔍 DEBUG - Creating MediaObject:', { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture, displayOrder });
+      
       const result = await this.db.prepare(`
-        INSERT INTO MediaObjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
+        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         lockId,
@@ -291,12 +293,17 @@ export class LocksService {
         displayOrder || null
       ).run();
 
+      console.log('🔍 DEBUG - Insert result:', { success: result.success, meta: (result as any).meta });
+
       if (!result.success || !(result as any).meta?.last_row_id) {
+        console.error('🔍 DEBUG - Failed to insert MediaObject - result was not successful or no last_row_id');
         return null;
       }
 
       // Fetch the created media object
       const mediaObjectId = (result as any).meta.last_row_id as number;
+      console.log('🔍 DEBUG - MediaObject created with ID:', mediaObjectId);
+      
       const mediaObject = await this.db.prepare(`
         SELECT 
           id as Id,
@@ -308,12 +315,13 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM MediaObjects WHERE id = ?
+        FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 
+      console.log('🔍 DEBUG - Retrieved MediaObject:', mediaObject);
       return mediaObject;
     } catch (error) {
-      console.error('Error creating media object:', error);
+      console.error('🔍 DEBUG - Error creating media object:', error);
       throw new DatabaseError('Failed to create media object');
     }
   }
@@ -321,7 +329,7 @@ export class LocksService {
   async deleteMediaObject(mediaObjectId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        DELETE FROM MediaObjects WHERE id = ?
+        DELETE FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).run();
 
       return result.success && (result.changes || 0) > 0;
@@ -334,7 +342,7 @@ export class LocksService {
   async updateMediaDisplayOrder(mediaObjectId: number, displayOrder: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE MediaObjects SET DisplayOrder = ? WHERE id = ?
+        UPDATE mediaobjects SET DisplayOrder = ? WHERE id = ?
       `).bind(displayOrder, mediaObjectId).run();
 
       return result.success;
@@ -357,7 +365,7 @@ export class LocksService {
           IsMainPicture,
           CreatedAt,
           DisplayOrder
-        FROM MediaObjects WHERE id = ?
+        FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).first() as MediaObject | null;
 
       return mediaObject;
@@ -376,10 +384,10 @@ export class LocksService {
   }> {
     try {
       const [totalResult, sealedResult, withUsersResult, withMediaResult] = await Promise.all([
-        this.db.prepare(`SELECT COUNT(*) as count FROM Locks`).first(),
-        this.db.prepare(`SELECT COUNT(*) as count FROM Locks WHERE SealDate IS NOT NULL`).first(),
-        this.db.prepare(`SELECT COUNT(*) as count FROM Locks WHERE UserId IS NOT NULL`).first(),
-        this.db.prepare(`SELECT COUNT(DISTINCT LockId) as count FROM MediaObjects`).first()
+        this.db.prepare(`SELECT COUNT(*) as count FROM locks`).first(),
+        this.db.prepare(`SELECT COUNT(*) as count FROM locks WHERE SealDate IS NOT NULL`).first(),
+        this.db.prepare(`SELECT COUNT(*) as count FROM locks WHERE UserId IS NOT NULL`).first(),
+        this.db.prepare(`SELECT COUNT(DISTINCT LockId) as count FROM mediaobjects`).first()
       ]);
 
       return {
@@ -398,7 +406,7 @@ export class LocksService {
   async incrementScanCount(lockId: number): Promise<void> {
     try {
       await this.db.prepare(`
-        UPDATE Locks SET ScanCount = ScanCount + 1 WHERE Id = ?
+        UPDATE locks SET ScanCount = ScanCount + 1 WHERE Id = ?
       `).bind(lockId).run();
     } catch (error) {
       console.error('Error incrementing scan count:', error);
@@ -440,7 +448,7 @@ export class LocksService {
       bindings.push(lockId);
 
       const result = await this.db.prepare(`
-        UPDATE Locks SET ${setParts.join(', ')} WHERE Id = ?
+        UPDATE locks SET ${setParts.join(', ')} WHERE Id = ?
       `).bind(...bindings).run();
 
       return result.success;
@@ -453,7 +461,7 @@ export class LocksService {
   async updateNotificationSettings(lockId: number, notifiedWhenScanned: boolean): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        UPDATE Locks SET NotifiedWhenScanned = ? WHERE Id = ?
+        UPDATE locks SET NotifiedWhenScanned = ? WHERE Id = ?
       `).bind(notifiedWhenScanned, lockId).run();
 
       return result.success;
@@ -467,7 +475,7 @@ export class LocksService {
     try {
       const offset = (page - 1) * limit;
       const result = await this.db.prepare(`
-        SELECT * FROM Locks ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
+        SELECT * FROM locks ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
       `).bind(limit, offset).all() as { results: Lock[] };
 
       return result.results || [];
@@ -481,7 +489,7 @@ export class LocksService {
     try {
       const offset = (page - 1) * limit;
       const result = await this.db.prepare(`
-        SELECT * FROM Locks WHERE UserId = ? ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
+        SELECT * FROM locks WHERE UserId = ? ORDER BY CreatedAt DESC LIMIT ? OFFSET ?
       `).bind(userId, limit, offset).all() as { results: Lock[] };
 
       return result.results || [];
@@ -495,12 +503,12 @@ export class LocksService {
     try {
       // Delete associated media objects first
       await this.db.prepare(`
-        DELETE FROM MediaObjects WHERE LockId = ?
+        DELETE FROM mediaobjects WHERE LockId = ?
       `).bind(lockId).run();
 
       // Delete the lock
       const result = await this.db.prepare(`
-        DELETE FROM Locks WHERE Id = ?
+        DELETE FROM locks WHERE Id = ?
       `).bind(lockId).run();
 
       return result.success;
@@ -517,7 +525,7 @@ export class LocksService {
   async lockExists(lockId: number): Promise<boolean> {
     try {
       const result = await this.db.prepare(`
-        SELECT 1 FROM Locks WHERE Id = ? LIMIT 1
+        SELECT 1 FROM locks WHERE Id = ? LIMIT 1
       `).bind(lockId).first();
 
       return result !== null;
