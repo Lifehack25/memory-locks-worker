@@ -18,7 +18,15 @@ export class AuthMiddleware {
       const apiKey = c.req.header('X-API-Key') || c.req.query('api_key');
       const expectedKey = c.env.ADMIN_API_KEY;
 
+      console.log('🔍 DEBUG - API Key validation:', {
+        providedKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'null',
+        expectedKeyExists: !!expectedKey,
+        expectedKeyLength: expectedKey?.length || 0,
+        expectedKeyPreview: expectedKey ? `${expectedKey.substring(0, 10)}...` : 'null'
+      });
+
       if (!apiKey) {
+        console.log('🔍 DEBUG - No API key provided');
         return c.json(
           {
             error: 'API key required',
@@ -29,6 +37,7 @@ export class AuthMiddleware {
       }
 
       if (!this.validateApiKey(apiKey, expectedKey)) {
+        console.log('🔍 DEBUG - API key validation failed');
         return c.json(
           {
             error: 'Invalid API key',
@@ -38,6 +47,7 @@ export class AuthMiddleware {
         );
       }
 
+      console.log('🔍 DEBUG - API key validation successful');
       // API key is valid, proceed to next middleware/handler
       await next();
     };
