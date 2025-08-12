@@ -290,7 +290,7 @@ export class LocksService {
         mediaType,
         isMainPicture ? 1 : 0,
         new Date().toISOString(),
-        displayOrder || null
+        displayOrder !== undefined ? displayOrder : null
       ).run();
 
       console.log('🔍 DEBUG - Insert result:', { success: result.success, meta: (result as any).meta });
