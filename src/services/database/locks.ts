@@ -255,12 +255,27 @@ export class LocksService {
           CreatedAt,
           DisplayOrder
         FROM mediaobjects WHERE LockId = ? ORDER BY DisplayOrder ASC, CreatedAt ASC
-      `).bind(lockId).all() as { results: MediaObject[] };
+      `).bind(lockId).all() as { results: any[] };
 
       // DEBUG: Log raw database results
       console.log('🔍 DEBUG - Raw DB results for lockId', lockId, ':', JSON.stringify(mediaResult.results, null, 2));
 
-      return mediaResult.results || [];
+      // Convert SQLite results to proper MediaObject format
+      const formattedResults: MediaObject[] = (mediaResult.results || []).map(raw => ({
+        Id: raw.Id,
+        LockId: raw.LockId,
+        CloudflareImageId: raw.CloudflareImageId,
+        Url: raw.Url,
+        FileName: raw.FileName || undefined,
+        MediaType: raw.MediaType,
+        IsMainPicture: raw.IsMainPicture === 1, // Convert SQLite integer to boolean
+        CreatedAt: raw.CreatedAt,
+        DisplayOrder: raw.DisplayOrder || undefined // Convert null to undefined for consistency
+      }));
+
+      console.log('🔍 DEBUG - Formatted results for lockId', lockId, ':', JSON.stringify(formattedResults, null, 2));
+
+      return formattedResults;
     } catch (error) {
       console.error('Error getting media objects:', error);
       throw new DatabaseError('Failed to retrieve media objects');
@@ -304,7 +319,7 @@ export class LocksService {
       const mediaObjectId = (result as any).meta.last_row_id as number;
       console.log('🔍 DEBUG - MediaObject created with ID:', mediaObjectId);
       
-      const mediaObject = await this.db.prepare(`
+      const rawMediaObject = await this.db.prepare(`
         SELECT 
           id as Id,
           LockId,
@@ -316,9 +331,27 @@ export class LocksService {
           CreatedAt,
           DisplayOrder
         FROM mediaobjects WHERE id = ?
-      `).bind(mediaObjectId).first() as MediaObject | null;
+      `).bind(mediaObjectId).first() as any;
 
-      console.log('🔍 DEBUG - Retrieved MediaObject:', mediaObject);
+      if (!rawMediaObject) {
+        console.error('🔍 DEBUG - Could not retrieve created MediaObject with ID:', mediaObjectId);
+        return null;
+      }
+
+      // Convert SQLite integer to boolean and ensure proper format for API consumption
+      const mediaObject: MediaObject = {
+        Id: rawMediaObject.Id,
+        LockId: rawMediaObject.LockId,
+        CloudflareImageId: rawMediaObject.CloudflareImageId,
+        Url: rawMediaObject.Url,
+        FileName: rawMediaObject.FileName || undefined,
+        MediaType: rawMediaObject.MediaType,
+        IsMainPicture: rawMediaObject.IsMainPicture === 1, // Convert SQLite integer to boolean
+        CreatedAt: rawMediaObject.CreatedAt,
+        DisplayOrder: rawMediaObject.DisplayOrder || undefined // Convert null to undefined for consistency
+      };
+
+      console.log('🔍 DEBUG - Formatted MediaObject for API:', mediaObject);
       return mediaObject;
     } catch (error) {
       console.error('🔍 DEBUG - Error creating media object:', error);
@@ -354,7 +387,7 @@ export class LocksService {
 
   async getMediaObjectById(mediaObjectId: number): Promise<MediaObject | null> {
     try {
-      const mediaObject = await this.db.prepare(`
+      const rawMediaObject = await this.db.prepare(`
         SELECT 
           id as Id,
           LockId,
@@ -366,7 +399,24 @@ export class LocksService {
           CreatedAt,
           DisplayOrder
         FROM mediaobjects WHERE id = ?
-      `).bind(mediaObjectId).first() as MediaObject | null;
+      `).bind(mediaObjectId).first() as any;
+
+      if (!rawMediaObject) {
+        return null;
+      }
+
+      // Convert SQLite result to proper MediaObject format
+      const mediaObject: MediaObject = {
+        Id: rawMediaObject.Id,
+        LockId: rawMediaObject.LockId,
+        CloudflareImageId: rawMediaObject.CloudflareImageId,
+        Url: rawMediaObject.Url,
+        FileName: rawMediaObject.FileName || undefined,
+        MediaType: rawMediaObject.MediaType,
+        IsMainPicture: rawMediaObject.IsMainPicture === 1, // Convert SQLite integer to boolean
+        CreatedAt: rawMediaObject.CreatedAt,
+        DisplayOrder: rawMediaObject.DisplayOrder || undefined // Convert null to undefined for consistency
+      };
 
       return mediaObject;
     } catch (error) {
