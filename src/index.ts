@@ -677,6 +677,30 @@ app.patch('/api/data/locks/:lockId/notifications', async (c) => {
   return c.json({ success: true });
 });
 
+app.patch('/api/data/locks/:lockId/title', async (c) => {
+  const lockId = parseInt(c.req.param('lockId') || '0');
+  if (!lockId) {
+    throw new Error('Invalid lock ID');
+  }
+  
+  const body = await c.req.json();
+  const albumTitle = body.albumTitle;
+  
+  if (!albumTitle || typeof albumTitle !== 'string') {
+    throw new Error('Album title is required');
+  }
+  
+  const locksService = new LocksService(c.env.DB);
+  const success = await locksService.updateAlbumTitle(lockId, albumTitle);
+  
+  if (!success) {
+    throw new DatabaseError('Failed to update album title');
+  }
+  
+  Logger.info('Album title updated via data API', { lockId, albumTitle });
+  return c.json({ success: true });
+});
+
 // MediaObject management routes (for main API integration)
 app.post('/api/data/mediaobjects',
   ValidationMiddleware.validateBody(CreateMediaObjectSchema),
