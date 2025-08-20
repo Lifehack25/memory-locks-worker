@@ -365,7 +365,16 @@ export class LocksService {
         DELETE FROM mediaobjects WHERE id = ?
       `).bind(mediaObjectId).run();
 
-      return result.success && (result.changes || 0) > 0;
+      // Consider deletion successful if:
+      // 1. The SQL operation succeeded, AND
+      // 2. Either we deleted a row (changes > 0) OR no row existed to delete (changes = 0)
+      // This makes deletion idempotent - if object doesn't exist, still return success
+      const deletionSuccessful = result.success;
+      const rowsAffected = result.changes || 0;
+      
+      console.log(`🔍 DEBUG - Media object ${mediaObjectId} deletion: success=${result.success}, changes=${rowsAffected}`);
+      
+      return deletionSuccessful;
     } catch (error) {
       console.error('Error deleting media object:', error);
       throw new DatabaseError('Failed to delete media object');
