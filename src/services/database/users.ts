@@ -157,4 +157,23 @@ export class UserService {
       throw new DatabaseError('Failed to retrieve user by provider');
     }
   }
+
+  async upgradeToPremiumStorage(userId: number): Promise<User | null> {
+    try {
+      // Update the user's premium storage status
+      const updateResult = await this.db.prepare(`
+        UPDATE users SET HasPremiumStorage = 1, UpdatedAt = datetime('now', '+2 hours') 
+        WHERE id = ?
+      `).bind(userId).run();
+
+      if (updateResult.success) {
+        // Return the updated user
+        return await this.getUserById(userId);
+      }
+      return null;
+    } catch (error) {
+      console.error('Error upgrading user to premium storage:', error);
+      throw new DatabaseError('Failed to upgrade user to premium storage');
+    }
+  }
 }

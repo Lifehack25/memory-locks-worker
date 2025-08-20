@@ -11,6 +11,7 @@ export interface User {
   CreatedAt: string;
   UpdatedAt: string;
   LastLoginAt?: string;
+  HasPremiumStorage?: boolean;
 }
 
 export interface RefreshToken {

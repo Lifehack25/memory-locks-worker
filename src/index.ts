@@ -502,6 +502,23 @@ app.patch('/api/data/users/:userId/last-login', async (c) => {
   return c.json({ success: true });
 });
 
+app.patch('/api/data/users/:userId/premium-storage', async (c) => {
+  const userId = parseInt(c.req.param('userId') || '0');
+  if (!userId) {
+    throw new Error('Invalid user ID');
+  }
+  
+  const userService = new UserService(c.env.DB);
+  const updatedUser = await userService.upgradeToPremiumStorage(userId);
+  
+  if (!updatedUser) {
+    throw new DatabaseError('Failed to upgrade user to premium storage');
+  }
+  
+  Logger.info('User upgraded to premium storage', { userId });
+  return c.json(updatedUser);
+});
+
 app.delete('/api/data/users/provider/:provider/:providerId',
   ValidationMiddleware.validateParams(ProviderParamSchema),
   async (c) => {
