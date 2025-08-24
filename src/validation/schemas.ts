@@ -146,7 +146,7 @@ export const MediaTypeSchema = z.enum(['image/jpeg', 'image/png', 'image/webp', 
 export const MediaObjectSchema = z.object({
   Id: PositiveIntSchema,
   LockId: PositiveIntSchema,
-  CloudflareImageId: z.string().min(1).max(255),
+  CloudflareId: z.string().min(1).max(255),
   Url: z.string().url(),
   FileName: OptionalStringSchema,
   MediaType: MediaTypeSchema,

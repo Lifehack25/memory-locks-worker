@@ -247,7 +247,7 @@ export class LocksService {
         SELECT 
           id as Id,
           LockId,
-          CloudflareImageId,
+          CloudflareId,
           Url,
           FileName,
           MediaType,
@@ -264,7 +264,7 @@ export class LocksService {
       const formattedResults: MediaObject[] = (mediaResult.results || []).map(raw => ({
         Id: raw.Id,
         LockId: raw.LockId,
-        CloudflareImageId: raw.CloudflareImageId,
+        CloudflareId: raw.CloudflareId,
         Url: raw.Url,
         FileName: raw.FileName || undefined,
         MediaType: raw.MediaType,
@@ -295,7 +295,7 @@ export class LocksService {
       console.log('🔍 DEBUG - Creating MediaObject:', { lockId, cloudflareImageId, url, fileName, mediaType, isMainPicture, displayOrder });
       
       const result = await this.db.prepare(`
-        INSERT INTO mediaobjects (LockId, CloudflareImageId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
+        INSERT INTO mediaobjects (LockId, CloudflareId, Url, FileName, MediaType, IsMainPicture, CreatedAt, DisplayOrder)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         lockId,
@@ -323,7 +323,7 @@ export class LocksService {
         SELECT 
           id as Id,
           LockId,
-          CloudflareImageId,
+          CloudflareId,
           Url,
           FileName,
           MediaType,
@@ -342,7 +342,7 @@ export class LocksService {
       const mediaObject: MediaObject = {
         Id: rawMediaObject.Id,
         LockId: rawMediaObject.LockId,
-        CloudflareImageId: rawMediaObject.CloudflareImageId,
+        CloudflareId: rawMediaObject.CloudflareId,
         Url: rawMediaObject.Url,
         FileName: rawMediaObject.FileName || undefined,
         MediaType: rawMediaObject.MediaType,
@@ -393,7 +393,7 @@ export class LocksService {
         SELECT 
           id as Id,
           LockId,
-          CloudflareImageId,
+          CloudflareId,
           Url,
           FileName,
           MediaType,
@@ -411,7 +411,7 @@ export class LocksService {
       const mediaObject: MediaObject = {
         Id: rawMediaObject.Id,
         LockId: rawMediaObject.LockId,
-        CloudflareImageId: rawMediaObject.CloudflareImageId,
+        CloudflareId: rawMediaObject.CloudflareId,
         Url: rawMediaObject.Url,
         FileName: rawMediaObject.FileName || undefined,
         MediaType: rawMediaObject.MediaType,

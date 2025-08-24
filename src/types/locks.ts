@@ -13,7 +13,7 @@ export interface Lock {
 export interface MediaObject {
   Id: number;
   LockId: number;
-  CloudflareImageId: string;
+  CloudflareId: string;
   Url: string;
   FileName?: string;
   MediaType: string;
